@@ -43,7 +43,7 @@ export const fetchCustomSchemaById = createAsyncThunk(
 
 export const createCustomSchema = createAsyncThunk(
   "customSchemas/createCustomSchema",
-  async (schema: Omit<CustomSchema, "createdAt" | "updatedAt">) => {
+  async (schema: Omit<CustomSchema, "id" | "createdAt" | "updatedAt">) => {
     const response = await SchemaManagementService.createCustomSchema(schema);
     return response.data.data;
   }

@@ -55,6 +55,7 @@ services:
       - CUSTOM_SECONDARY_COLOR=${CUSTOM_SECONDARY_COLOR:-#dc004e}
       # Schema Configuration
       - CUSTOM_SCHEMAS_PATH=${CUSTOM_SCHEMAS_PATH:-/app/data/schemas}
+      - BUILT_IN_SCHEMAS_PATH=/app/schemas
       - ENABLE_SCHEMA_MANAGEMENT=${ENABLE_SCHEMA_MANAGEMENT:-true}
       - SCHEMA_VALIDATION_STRICT=${SCHEMA_VALIDATION_STRICT:-true}
       # Feature Flags
@@ -73,17 +74,15 @@ services:
     build:
       context: ./services/credential-server-ui
       dockerfile: ./Dockerfile
+      args:
+        - VITE_SERVER_URL=${CRED_UI_SERVER_URL:-http://localhost:3001}
+        - VITE_CUSTOM_ORG_NAME=${CUSTOM_ORG_NAME:-Default Organization}
+        - VITE_CUSTOM_LOGO_PATH=${CUSTOM_LOGO_PATH:-/assets/logo.png}
+        - VITE_CUSTOM_PRIMARY_COLOR=${CUSTOM_PRIMARY_COLOR:-#1976d2}
+        - VITE_CUSTOM_SECONDARY_COLOR=${CUSTOM_SECONDARY_COLOR:-#dc004e}
+        - VITE_ENABLE_BRANDING_CUSTOMIZATION=${ENABLE_BRANDING_CUSTOMIZATION:-true}
+        - VITE_ENABLE_BULK_CREDENTIAL_GENERATION=${ENABLE_BULK_CREDENTIAL_GENERATION:-true}
     restart: unless-stopped
-    environment:
-      - VITE_SERVER_URL=${CRED_UI_SERVER_URL:-http://localhost:3001}
-      # Branding Configuration for UI
-      - VITE_CUSTOM_ORG_NAME=${CUSTOM_ORG_NAME:-Default Organization}
-      - VITE_CUSTOM_LOGO_PATH=${CUSTOM_LOGO_PATH:-/assets/logo.png}
-      - VITE_CUSTOM_PRIMARY_COLOR=${CUSTOM_PRIMARY_COLOR:-#1976d2}
-      - VITE_CUSTOM_SECONDARY_COLOR=${CUSTOM_SECONDARY_COLOR:-#dc004e}
-      # Feature Flags for UI
-      - VITE_ENABLE_BRANDING_CUSTOMIZATION=${ENABLE_BRANDING_CUSTOMIZATION:-true}
-      - VITE_ENABLE_BULK_CREDENTIAL_GENERATION=${ENABLE_BULK_CREDENTIAL_GENERATION:-true}
     ports:
       - 3000:80
     volumes:

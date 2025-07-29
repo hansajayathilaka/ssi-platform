@@ -9,7 +9,12 @@ import cors from "cors";
 import express from "express";
 import { SignifyClient, ready as signifyReady, Tier } from "signify-ts";
 import { config } from "./config";
-import { ACDC_SCHEMAS_ID, ISSUER_NAME, QVI_NAME } from "./consts";
+import {
+  ACDC_SCHEMAS_ID,
+  DEFAULT_SCHEMAS_ID,
+  ISSUER_NAME,
+  QVI_NAME,
+} from "./consts";
 import { log } from "./log";
 import { router } from "./routes";
 import { EndRole } from "./server.types";
@@ -43,9 +48,9 @@ async function getSignifyClient(bran: string): Promise<SignifyClient> {
     await client.connect();
   }
 
-  console.log("Loading schemas via OOBI...");
+  console.log("Loading default schemas via OOBI...");
   const schemaResults = await Promise.allSettled(
-    ACDC_SCHEMAS_ID.map(async (schemaId) => {
+    DEFAULT_SCHEMAS_ID.map(async (schemaId) => {
       try {
         const oobiUrl = `${config.oobiEndpoint}/oobi/${schemaId}`;
         console.log(`Loading schema: ${schemaId} from ${oobiUrl}`);

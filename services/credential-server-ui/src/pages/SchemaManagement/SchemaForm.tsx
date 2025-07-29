@@ -143,11 +143,15 @@ export const SchemaForm = () => {
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.id.trim()) {
-      newErrors.id = "Schema ID is required";
-    } else if (!/^[a-zA-Z0-9-_]+$/.test(formData.id)) {
-      newErrors.id =
-        "Schema ID can only contain letters, numbers, hyphens, and underscores";
+    // For edit mode, ID is still required and validated
+    // For create mode, ID will be auto-generated, so we skip validation
+    if (isEditMode) {
+      if (!formData.id.trim()) {
+        newErrors.id = "Schema ID is required";
+      } else if (!/^[a-zA-Z0-9-_]+$/.test(formData.id)) {
+        newErrors.id =
+          "Schema ID can only contain letters, numbers, hyphens, and underscores";
+      }
     }
 
     if (!formData.name.trim()) {
@@ -181,16 +185,17 @@ export const SchemaForm = () => {
       return;
     }
 
-    const schemaData: Omit<CustomSchema, "createdAt" | "updatedAt"> = {
-      id: formData.id,
-      name: formData.name,
-      version: formData.version,
-      description: formData.description,
-      fields: formData.fields,
-      metadata: formData.metadata,
-    };
-
     if (isEditMode && currentSchema) {
+      // For updates, include the ID
+      const schemaData: Omit<CustomSchema, "createdAt" | "updatedAt"> = {
+        id: formData.id,
+        name: formData.name,
+        version: formData.version,
+        description: formData.description,
+        fields: formData.fields,
+        metadata: formData.metadata,
+      };
+
       dispatch(
         updateCustomSchema({
           id: formData.id,
@@ -202,6 +207,15 @@ export const SchemaForm = () => {
         })
       );
     } else {
+      // For creation, omit the ID - it will be auto-generated
+      const schemaData: Omit<CustomSchema, "id" | "createdAt" | "updatedAt"> = {
+        name: formData.name,
+        version: formData.version,
+        description: formData.description,
+        fields: formData.fields,
+        metadata: formData.metadata,
+      };
+
       dispatch(createCustomSchema(schemaData));
     }
   };
@@ -300,12 +314,19 @@ export const SchemaForm = () => {
         >
           <TextField
             label="Schema ID"
-            value={formData.id}
+            value={isEditMode ? formData.id : "Auto-generated SAID"}
             onChange={(e) => setFormData({ ...formData, id: e.target.value })}
             error={Boolean(errors.id)}
-            helperText={errors.id || "Unique identifier for the schema"}
-            disabled={isEditMode}
-            required
+            helperText={
+              isEditMode
+                ? errors.id || "Unique identifier for the schema"
+                : "ID will be automatically generated using SAID (Self-Addressing Identifier)"
+            }
+            disabled={true}
+            required={isEditMode}
+            placeholder={
+              isEditMode ? undefined : "Will be generated automatically"
+            }
           />
           <TextField
             label="Schema Name"

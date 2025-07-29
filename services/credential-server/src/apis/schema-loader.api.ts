@@ -7,7 +7,7 @@
 import { Request, Response } from "express";
 import { SignifyClient } from "signify-ts";
 import { config } from "../config";
-import { ACDC_SCHEMAS_ID } from "../consts";
+import { DEFAULT_SCHEMAS_ID } from "../consts";
 import { resolveOobi } from "../utils/utils";
 
 /**
@@ -31,14 +31,14 @@ export async function reloadSchemas(
       return;
     }
 
-    console.log("Reloading schemas via OOBI...");
+    console.log("Reloading default schemas via OOBI...");
     const results: Array<{
       schemaId: string;
       success: boolean;
       error?: string;
     }> = [];
 
-    for (const schemaId of ACDC_SCHEMAS_ID) {
+    for (const schemaId of DEFAULT_SCHEMAS_ID) {
       try {
         console.log(
           `Loading schema: ${schemaId} from ${config.oobiEndpoint}/oobi/${schemaId}`
@@ -66,12 +66,12 @@ export async function reloadSchemas(
     res.status(200).json({
       success: true,
       data: {
-        totalSchemas: ACDC_SCHEMAS_ID.length,
+        totalSchemas: DEFAULT_SCHEMAS_ID.length,
         successful: successful.length,
         failed: failed.length,
         results: results,
       },
-      message: `Schema reload completed. ${successful.length}/${ACDC_SCHEMAS_ID.length} schemas loaded successfully.`,
+      message: `Schema reload completed. ${successful.length}/${DEFAULT_SCHEMAS_ID.length} default schemas loaded successfully.`,
     });
   } catch (error) {
     console.error("Error reloading schemas:", error);
@@ -113,7 +113,7 @@ export async function getSchemaStatus(
       error?: string;
     }> = [];
 
-    for (const schemaId of ACDC_SCHEMAS_ID) {
+    for (const schemaId of DEFAULT_SCHEMAS_ID) {
       try {
         await client.schemas().get(schemaId);
         results.push({ schemaId, loaded: true });
@@ -132,7 +132,7 @@ export async function getSchemaStatus(
     res.status(200).json({
       success: true,
       data: {
-        totalSchemas: ACDC_SCHEMAS_ID.length,
+        totalSchemas: DEFAULT_SCHEMAS_ID.length,
         loaded: loaded.length,
         notLoaded: notLoaded.length,
         schemas: results,

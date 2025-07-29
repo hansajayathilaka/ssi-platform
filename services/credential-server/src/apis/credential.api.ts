@@ -1,6 +1,12 @@
 import { NextFunction, Request, Response } from "express";
 import { Operation, Saider, Serder, SignifyClient } from "signify-ts";
-import { ACDC_SCHEMAS_ID, ISSUER_NAME, LE_SCHEMA_SAID } from "../consts";
+import {
+  ACDC_SCHEMAS_ID,
+  DEFAULT_SCHEMAS_ID,
+  CUSTOM_SCHEMAS_ID,
+  ISSUER_NAME,
+  LE_SCHEMA_SAID,
+} from "../consts";
 import { getRegistry, OP_TIMEOUT, waitAndGetDoneOp } from "../utils/utils";
 import { QviCredential } from "../utils/utils.types";
 import { SchemaStorageService } from "../services/schema-storage.service";
@@ -24,7 +30,7 @@ const schemaStorageService = new SchemaStorageService({
  * Check if a schema ID is valid (either default or custom)
  */
 async function isValidSchemaId(schemaSaid: string): Promise<boolean> {
-  // Check if it's a default schema
+  // Check if it's a default or custom schema
   if (ACDC_SCHEMAS_ID.some((schemaId) => schemaId === schemaSaid)) {
     return true;
   }
@@ -42,7 +48,7 @@ async function validateCredentialData(
   credentialData: any
 ): Promise<{ isValid: boolean; errors: string[] }> {
   // For default schemas, skip validation (handled by existing logic)
-  if (ACDC_SCHEMAS_ID.some((schemaId) => schemaId === schemaSaid)) {
+  if (DEFAULT_SCHEMAS_ID.some((schemaId) => schemaId === schemaSaid)) {
     return { isValid: true, errors: [] };
   }
 
@@ -213,7 +219,7 @@ export async function issueAcdcCredential(
   }
 
   // For default schemas, check if they are loaded in KERI
-  if (ACDC_SCHEMAS_ID.some((schemaId) => schemaId === schemaSaid)) {
+  if (DEFAULT_SCHEMAS_ID.some((schemaId) => schemaId === schemaSaid)) {
     try {
       // Try to get the schema from KERI to verify it's loaded
       await client.schemas().get(schemaSaid);
@@ -233,7 +239,7 @@ export async function issueAcdcCredential(
   }
 
   // For SAID-based schemas, validate the SAID format
-  const isDefaultSchema = ACDC_SCHEMAS_ID.some(
+  const isDefaultSchema = DEFAULT_SCHEMAS_ID.some(
     (schemaId) => schemaId === schemaSaid
   );
   if (!isDefaultSchema) {
@@ -293,7 +299,7 @@ export async function issueAcdcCredential(
   let grantParams: any;
 
   // Check if this is a custom schema
-  const isCustomSchema = !ACDC_SCHEMAS_ID.some(
+  const isCustomSchema = CUSTOM_SCHEMAS_ID.some(
     (schemaId) => schemaId === schemaSaid
   );
 

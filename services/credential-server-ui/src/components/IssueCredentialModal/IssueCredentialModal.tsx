@@ -41,87 +41,51 @@ const IssueCredentialModal = ({
   const [loading, setLoading] = useState(false);
   const schema = useSchemaDetail(selectedCredTemplate);
 
-  // Recursively find all form fields in the JSON schema
-  const extractFormFields = (
-    schemaObj: any,
-    path: string[] = []
-  ): {
-    properties: Record<string, any>;
-    required: string[];
-    fieldPaths: Record<string, string[]>;
-  } => {
-    const result = {
-      properties: {} as Record<string, any>,
-      required: [] as string[],
-      fieldPaths: {} as Record<string, string[]>,
-    };
-
-    if (!schemaObj || typeof schemaObj !== "object") {
-      return result;
-    }
-
-    // Check if this level has properties
-    if (schemaObj.properties && typeof schemaObj.properties === "object") {
-      const properties = schemaObj.properties;
-      const required = schemaObj.required || [];
-
-      // Process each property
-      Object.keys(properties).forEach((key) => {
-        const property = properties[key];
-        const currentPath = [...path, key];
-        const fieldKey = currentPath.join(".");
-
-        // If this property has its own properties (nested object), recurse
-        if (property.properties && typeof property.properties === "object") {
-          const nested = extractFormFields(property, currentPath);
-          Object.assign(result.properties, nested.properties);
-          result.required.push(...nested.required);
-          Object.assign(result.fieldPaths, nested.fieldPaths);
-        } else {
-          // This is a leaf property (actual form field)
-          result.properties[fieldKey] = property;
-          result.fieldPaths[fieldKey] = currentPath;
-
-          // Check if this field is required
-          if (required.includes(key)) {
-            result.required.push(fieldKey);
-          }
-        }
-      });
-    }
-
-    // Handle oneOf structures (for backward compatibility)
-    if (schemaObj.oneOf && Array.isArray(schemaObj.oneOf)) {
-      schemaObj.oneOf.forEach((option: any) => {
-        const nested = extractFormFields(option, path);
-        Object.assign(result.properties, nested.properties);
-        result.required.push(...nested.required);
-        Object.assign(result.fieldPaths, nested.fieldPaths);
-      });
-    }
-
-    return result;
-  };
-
-  // Extract form fields from schema
+  // Extract form fields from schema - simplified for current schema structure
   const getSchemaProperties = () => {
-    if (!schema) {
+    if (!schema || !schema.properties || !schema.properties.a) {
       return {
         properties: {},
         required: [],
-        fieldPaths: {},
       };
     }
 
-    // Start extraction from the root schema
-    return extractFormFields(schema);
+    // Find the attributes block in the oneOf array
+    const attributesBlock = schema.properties.a.oneOf?.find(
+      (item: any) => item.type === "object" && item.properties
+    );
+
+    if (!attributesBlock || !attributesBlock.properties) {
+      return {
+        properties: {},
+        required: [],
+      };
+    }
+
+    // Skip system fields (d, i, dt) and extract user-fillable fields
+    const systemFields = ["d", "i", "dt"];
+    const properties: Record<string, any> = {};
+    const required: string[] = [];
+    const requiredFields = attributesBlock.required || [];
+
+    Object.entries(attributesBlock.properties).forEach(
+      ([fieldName, fieldDef]: [string, any]) => {
+        if (!systemFields.includes(fieldName)) {
+          properties[fieldName] = fieldDef;
+          if (requiredFields.includes(fieldName)) {
+            required.push(fieldName);
+          }
+        }
+      }
+    );
+
+    return {
+      properties,
+      required,
+    };
   };
 
-  const {
-    properties,
-    required: requiredList,
-    fieldPaths,
-  } = getSchemaProperties();
+  const { properties, required: requiredList } = getSchemaProperties();
   const attributeKeys = Object.keys(properties).filter(
     (key) => !IGNORE_ATTRIBUTES.includes(key)
   );
@@ -218,53 +182,16 @@ const IssueCredentialModal = ({
       )
     );
 
-    // Reconstruct nested object structure based on field paths
-    const reconstructNestedObject = (
-      flatData: Record<string, any>,
-      paths: Record<string, string[]>
-    ) => {
-      const result: any = {};
-
-      Object.entries(flatData).forEach(([flatKey, value]) => {
-        const path = paths[flatKey];
-        if (!path) return;
-
-        // Create nested structure
-        let current = result;
-        for (let i = 0; i < path.length - 1; i++) {
-          const segment = path[i];
-          if (!current[segment]) {
-            current[segment] = {};
-          }
-          current = current[segment];
-        }
-
-        // Set the final value
-        const finalKey = path[path.length - 1];
-        current[finalKey] = value;
-      });
-
-      return result;
-    };
-
-    let objAttributes = {};
-    if (Object.keys(filteredAttributes).length) {
-      const { fieldPaths } = getSchemaProperties();
-      const nestedAttributes = reconstructNestedObject(
-        filteredAttributes,
-        fieldPaths
-      );
-
-      objAttributes = {
-        attribute: nestedAttributes,
-      };
-    }
-
-    const data = {
+    // Structure the attributes for the current schema format
+    const data: any = {
       schemaSaid: schemaSaid,
       aid: selectedConnection,
-      ...objAttributes,
     };
+
+    // Add attributes under the 'attribute' field (matching the API expectation)
+    if (Object.keys(filteredAttributes).length) {
+      data.attribute = filteredAttributes;
+    }
 
     try {
       setLoading(true);

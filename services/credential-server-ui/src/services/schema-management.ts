@@ -3,11 +3,12 @@ import { httpInstance } from "./http";
 
 export interface CustomSchemaField {
   name: string;
-  type: "string" | "number" | "boolean" | "date" | "email" | "url";
+  type: "string" | "number" | "boolean" | "date" | "email" | "url" | "select";
   required: boolean;
   displayName: string;
   description?: string;
   defaultValue?: any;
+  options?: Array<{ value: string; label: string }>;
 }
 
 export interface CustomSchemaMetadata {
@@ -41,9 +42,14 @@ const SchemaManagementService = {
     return httpInstance.get(`${config.endpoint}/schemas/custom/${id}`);
   },
 
+  // Get a JSON schema by ID (for form generation)
+  getJsonSchemaById: async (id: string) => {
+    return httpInstance.get(`${config.endpoint}/schemas/${id}`);
+  },
+
   // Create a new custom schema
   createCustomSchema: async (
-    schema: Omit<CustomSchema, "createdAt" | "updatedAt">
+    schema: Omit<CustomSchema, "id" | "createdAt" | "updatedAt">
   ) => {
     return httpInstance.post(`${config.endpoint}/schemas/custom`, schema);
   },

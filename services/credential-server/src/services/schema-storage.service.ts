@@ -58,6 +58,47 @@ export class SchemaStorageService {
     // Write schema to file
     const schemaJson = JSON.stringify(schema, null, 2);
     fs.writeFileSync(filePath, schemaJson, "utf8");
+
+    console.log(`Schema saved successfully with SAID: ${schema.id}`);
+  }
+
+  /**
+   * Save a custom schema with automatic SAID generation
+   */
+  async saveSchemaWithSaid(
+    schema: Omit<CustomSchema, "id">
+  ): Promise<CustomSchema> {
+    // Import SAID utilities dynamically to avoid circular dependencies
+    const { convertToJsonSchema, saidifySchema } = await import(
+      "../utils/said.utils"
+    );
+
+    // Create a temporary schema with placeholder ID for SAID generation
+    const tempSchema: CustomSchema = {
+      ...schema,
+      id: "", // Placeholder
+    };
+
+    // Convert to JSON Schema and generate SAID
+    const jsonSchema = convertToJsonSchema(tempSchema);
+    const saidifiedSchema = saidifySchema(jsonSchema);
+    const generatedSaid = saidifiedSchema.$id;
+
+    if (!generatedSaid) {
+      throw new Error("Failed to generate SAID for schema");
+    }
+
+    // Update schema with generated SAID
+    const finalSchema: CustomSchema = {
+      ...schema,
+      id: generatedSaid,
+      updatedAt: new Date(),
+    };
+
+    // Save the schema
+    await this.saveSchema(finalSchema);
+
+    return finalSchema;
   }
 
   /**

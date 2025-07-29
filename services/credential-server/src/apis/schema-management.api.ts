@@ -27,6 +27,33 @@ const storageService = new SchemaStorageService({
 const validationService = new SchemaValidationService();
 
 /**
+ * Helper function to generate SAID for a custom schema
+ */
+async function generateSaidForSchema(schema: CustomSchema): Promise<string> {
+  try {
+    // Convert custom schema to JSON Schema format
+    const jsonSchema = convertToJsonSchema(schema);
+
+    // Generate SAID for the schema
+    const saidifiedSchema = saidifySchema(jsonSchema);
+    const generatedSaid = saidifiedSchema.$id;
+
+    if (!generatedSaid) {
+      throw new Error("Failed to generate SAID - empty result");
+    }
+
+    return generatedSaid;
+  } catch (error) {
+    console.error("Error in generateSaidForSchema:", error);
+    throw new Error(
+      `SAID generation failed: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
+    );
+  }
+}
+
+/**
  * GET /schemas/custom - List all custom schemas
  */
 export async function listCustomSchemas(
@@ -119,7 +146,10 @@ export async function createCustomSchema(
   res: Response
 ): Promise<void> {
   try {
-    const schemaData = req.body as CustomSchema;
+    const schemaData = req.body as Omit<
+      CustomSchema,
+      "id" | "createdAt" | "updatedAt"
+    >;
 
     // Basic request validation
     if (!schemaData || typeof schemaData !== "object") {
@@ -133,13 +163,17 @@ export async function createCustomSchema(
       return;
     }
 
-    // Set timestamps for new schema
+    // Create a complete schema object with timestamps
     const now = new Date();
-    schemaData.createdAt = now;
-    schemaData.updatedAt = now;
+    const completeSchemaData: Omit<CustomSchema, "id"> = {
+      ...schemaData,
+      createdAt: now,
+      updatedAt: now,
+    };
 
-    // Validate schema structure
-    const validationResult = validationService.validateSchema(schemaData);
+    // Validate schema structure (before SAID generation) - without requiring ID
+    const validationResult =
+      validationService.validateSchemaWithoutId(completeSchemaData);
 
     if (!validationResult.isValid) {
       res.status(400).json({
@@ -153,26 +187,55 @@ export async function createCustomSchema(
       return;
     }
 
-    // Check if schema with same ID already exists
-    const existingSchema = await storageService.loadSchema(schemaData.id);
-    if (existingSchema) {
-      res.status(409).json({
+    // Generate SAID using saidily
+    let finalSchema: CustomSchema;
+    try {
+      // Create a temporary schema with placeholder ID for SAID generation
+      const tempSchemaForSaid: CustomSchema = {
+        ...completeSchemaData,
+        id: "temp-id-for-said",
+      };
+
+      const generatedSaid = await generateSaidForSchema(tempSchemaForSaid);
+      finalSchema = {
+        ...completeSchemaData,
+        id: generatedSaid,
+      };
+      console.log(`Generated SAID for new schema: ${generatedSaid}`);
+    } catch (saidError) {
+      console.error("Error generating SAID for schema:", saidError);
+      res.status(500).json({
         success: false,
         error: {
-          code: "SCHEMA_ALREADY_EXISTS",
-          message: `Schema with ID '${schemaData.id}' already exists`,
+          code: "SAID_GENERATION_ERROR",
+          message: "Failed to generate SAID for schema",
+          details:
+            saidError instanceof Error ? saidError.message : "Unknown error",
         },
       });
       return;
     }
 
-    // Save the schema
-    await storageService.saveSchema(schemaData);
+    // Check if schema with same ID already exists (unlikely with SAID but good to check)
+    const existingSchema = await storageService.loadSchema(finalSchema.id);
+    if (existingSchema) {
+      res.status(409).json({
+        success: false,
+        error: {
+          code: "SCHEMA_ALREADY_EXISTS",
+          message: `Schema with ID '${finalSchema.id}' already exists`,
+        },
+      });
+      return;
+    }
+
+    // Save the schema with generated SAID
+    await storageService.saveSchema(finalSchema);
 
     res.status(201).json({
       success: true,
-      data: schemaData,
-      message: "Custom schema created successfully",
+      data: finalSchema,
+      message: "Custom schema created successfully with generated SAID",
     });
   } catch (error) {
     console.error("Error creating custom schema:", error);
@@ -220,18 +283,6 @@ export async function updateCustomSchema(
       return;
     }
 
-    // Ensure the ID in the URL matches the ID in the body
-    if (schemaData.id !== id) {
-      res.status(400).json({
-        success: false,
-        error: {
-          code: "SCHEMA_ID_MISMATCH",
-          message: "Schema ID in URL must match ID in request body",
-        },
-      });
-      return;
-    }
-
     // Check if schema exists
     const existingSchema = await storageService.loadSchema(id);
     if (!existingSchema) {
@@ -249,7 +300,7 @@ export async function updateCustomSchema(
     schemaData.createdAt = existingSchema.createdAt;
     schemaData.updatedAt = new Date();
 
-    // Validate schema structure
+    // Validate schema structure (before SAID generation)
     const validationResult = validationService.validateSchema(schemaData);
 
     if (!validationResult.isValid) {
@@ -264,13 +315,47 @@ export async function updateCustomSchema(
       return;
     }
 
-    // Save the updated schema
+    // Generate new SAID for updated schema
+    let newSaid: string;
+    try {
+      newSaid = await generateSaidForSchema(schemaData);
+      schemaData.id = newSaid;
+      console.log(
+        `Generated new SAID for updated schema: ${newSaid} (was: ${id})`
+      );
+    } catch (saidError) {
+      console.error("Error generating SAID for updated schema:", saidError);
+      res.status(500).json({
+        success: false,
+        error: {
+          code: "SAID_GENERATION_ERROR",
+          message: "Failed to generate SAID for updated schema",
+          details:
+            saidError instanceof Error ? saidError.message : "Unknown error",
+        },
+      });
+      return;
+    }
+
+    // If SAID changed, we need to handle the old schema file
+    if (newSaid !== id) {
+      // Delete the old schema file
+      await storageService.deleteSchema(id);
+      console.log(`Deleted old schema file with ID: ${id}`);
+    }
+
+    // Save the updated schema with new SAID
     await storageService.saveSchema(schemaData);
 
     res.status(200).json({
       success: true,
       data: schemaData,
-      message: "Custom schema updated successfully",
+      message:
+        newSaid !== id
+          ? "Custom schema updated successfully with new SAID"
+          : "Custom schema updated successfully",
+      oldId: newSaid !== id ? id : undefined,
+      newId: newSaid,
     });
   } catch (error) {
     console.error("Error updating custom schema:", error);

@@ -1,29 +1,38 @@
 FROM node:lts-alpine as build
 
+# Accept build args
+ARG VITE_SERVER_URL=http://localhost:3001
+ARG VITE_CUSTOM_ORG_NAME="Default Organization"
+ARG VITE_CUSTOM_LOGO_PATH="/assets/logo.png"
+ARG VITE_CUSTOM_PRIMARY_COLOR="#1976d2"
+ARG VITE_CUSTOM_SECONDARY_COLOR="#dc004e"
+ARG VITE_ENABLE_BRANDING_CUSTOMIZATION="true"
+ARG VITE_ENABLE_BULK_CREDENTIAL_GENERATION="true"
+
+# Set environment variables for Vite build
+ENV VITE_SERVER_URL=$VITE_SERVER_URL
+ENV VITE_CUSTOM_ORG_NAME=$VITE_CUSTOM_ORG_NAME
+ENV VITE_CUSTOM_LOGO_PATH=$VITE_CUSTOM_LOGO_PATH
+ENV VITE_CUSTOM_PRIMARY_COLOR=$VITE_CUSTOM_PRIMARY_COLOR
+ENV VITE_CUSTOM_SECONDARY_COLOR=$VITE_CUSTOM_SECONDARY_COLOR
+ENV VITE_ENABLE_BRANDING_CUSTOMIZATION=$VITE_ENABLE_BRANDING_CUSTOMIZATION
+ENV VITE_ENABLE_BULK_CREDENTIAL_GENERATION=$VITE_ENABLE_BULK_CREDENTIAL_GENERATION
+
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
-
 RUN npm run build
-
 
 FROM nginx:alpine
 
-# Nginx config
+# Copy nginx config
 RUN rm -rf /etc/nginx/conf.d
 COPY conf /etc/nginx
 
+# Copy built app
 COPY --from=build /app/dist /usr/share/nginx/html
-
-# Copy .env file and shell script to container
-WORKDIR /usr/share/nginx/html
-COPY ./env.sh /env.sh
-
-# Make our shell script executable
-RUN chmod +x /env.sh
 
 EXPOSE 80
 
-# Start Nginx server
-CMD ["/bin/sh", "-c", "/env.sh && nginx -g \"daemon off;\""]
+CMD ["nginx", "-g", "daemon off;"]

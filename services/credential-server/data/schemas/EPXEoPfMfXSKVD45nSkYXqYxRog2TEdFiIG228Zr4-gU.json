@@ -1,0 +1,27 @@
+{
+  "name": "Debug Test Schema",
+  "version": "1.0.0",
+  "description": "Testing API directly",
+  "fields": [
+    {
+      "name": "testField",
+      "type": "string",
+      "required": true,
+      "displayName": "Test Field",
+      "description": "A test field"
+    }
+  ],
+  "metadata": {
+    "author": "Test Author",
+    "organization": "Test Org",
+    "category": "Test",
+    "tags": [
+      "test"
+    ],
+    "isActive": true,
+    "isPublic": false
+  },
+  "createdAt": "2025-07-29T20:37:57.132Z",
+  "updatedAt": "2025-07-29T20:37:57.135Z",
+  "id": "EPXEoPfMfXSKVD45nSkYXqYxRog2TEdFiIG228Zr4-gU"
+}

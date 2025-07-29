@@ -1,13 +1,27 @@
-import { Box, Button, Typography, Alert } from "@mui/material";
+import {
+  Box,
+  Button,
+  Typography,
+  Alert,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Select,
+  FormHelperText,
+} from "@mui/material";
 import { useState, useEffect } from "react";
 import { Trans } from "react-i18next";
 import { i18n } from "../../i18n";
 import { CredentialService } from "../../services";
 import {
   SchemaManagementService,
-  CustomSchema,
   CustomSchemaField,
 } from "../../services/schema-management";
+import {
+  parseJsonSchemaForForm,
+  ParsedJsonSchema,
+  validateParsedSchema,
+} from "../../services/json-schema-parser";
 import { triggerToast } from "../../utils/toast";
 import { AppInput } from "../AppInput";
 import "./DynamicCredentialForm.scss";
@@ -30,7 +44,7 @@ const DynamicCredentialForm = ({
   onSuccess,
   onCancel,
 }: DynamicCredentialFormProps) => {
-  const [schema, setSchema] = useState<CustomSchema | null>(null);
+  const [schema, setSchema] = useState<ParsedJsonSchema | null>(null);
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [validationErrors, setValidationErrors] = useState<
     FieldValidationError[]
@@ -44,17 +58,29 @@ const DynamicCredentialForm = ({
       try {
         setSchemaLoading(true);
         const response =
-          await SchemaManagementService.getCustomSchemaById(schemaId);
+          await SchemaManagementService.getJsonSchemaById(schemaId);
+
         if (response.data.success) {
-          setSchema(response.data.data);
-          // Initialize form data with default values
-          const initialData: Record<string, any> = {};
-          response.data.data.fields.forEach((field: CustomSchemaField) => {
-            if (field.defaultValue !== undefined) {
-              initialData[field.name] = field.defaultValue;
-            }
-          });
-          setFormData(initialData);
+          const parsedSchema = parseJsonSchemaForForm(response.data.data);
+
+          if (parsedSchema && validateParsedSchema(parsedSchema)) {
+            setSchema(parsedSchema);
+            // Initialize form data with default values
+            const initialData: Record<string, any> = {};
+            parsedSchema.fields.forEach((field: CustomSchemaField) => {
+              if (field.defaultValue !== undefined) {
+                initialData[field.name] = field.defaultValue;
+              }
+            });
+            setFormData(initialData);
+          } else {
+            triggerToast(
+              i18n.t(
+                "components.dynamicCredentialForm.errors.schemaParsingFailed"
+              ) || "Failed to parse schema for form generation",
+              "error"
+            );
+          }
         } else {
           triggerToast(
             i18n.t("components.dynamicCredentialForm.errors.schemaLoadFailed"),
@@ -145,6 +171,19 @@ const DynamicCredentialForm = ({
           );
         }
         break;
+      case "select":
+        if (
+          field.options &&
+          !field.options.some((option) => option.value === value)
+        ) {
+          return i18n.t(
+            "components.dynamicCredentialForm.validation.invalidSelection",
+            {
+              field: field.displayName || field.name,
+            }
+          );
+        }
+        break;
     }
 
     return null;
@@ -190,17 +229,20 @@ const DynamicCredentialForm = ({
     try {
       setLoading(true);
 
-      // Prepare credential data
-      const credentialData = {
+      // Prepare credential data with attributes nested under 'attribute' field
+      const credentialData: any = {
         schemaSaid: schemaId,
         aid: recipientAid,
-        ...Object.fromEntries(
-          Object.entries(formData).map(([key, value]) => [
-            key,
-            typeof value === "string" ? value : String(value),
-          ])
-        ),
       };
+
+      // Add attributes under the 'attribute' field (matching the API expectation)
+      if (Object.keys(formData).length > 0) {
+        const attributes: Record<string, any> = {};
+        Object.entries(formData).forEach(([key, value]) => {
+          attributes[key] = typeof value === "string" ? value : String(value);
+        });
+        credentialData.attribute = attributes;
+      }
 
       // Issue the credential
       await CredentialService.issue(credentialData);
@@ -270,6 +312,52 @@ const DynamicCredentialForm = ({
                 {fieldError}
               </Typography>
             )}
+          </Box>
+        );
+
+      case "select":
+        return (
+          <Box
+            key={field.name}
+            className="form-field"
+          >
+            <FormControl
+              fullWidth
+              variant="standard"
+              error={!!fieldError}
+            >
+              <InputLabel shrink>
+                <span className="app-input-label">
+                  {field.displayName || field.name}
+                </span>
+                {!field.required && (
+                  <span className="app-input-optional">
+                    {i18n.t("general.optional")}
+                  </span>
+                )}
+              </InputLabel>
+              <Select
+                value={value}
+                onChange={(e) => handleFieldChange(field.name, e.target.value)}
+                displayEmpty
+              >
+                <MenuItem value="">
+                  <em>Select {field.displayName || field.name}</em>
+                </MenuItem>
+                {field.options?.map((option) => (
+                  <MenuItem
+                    key={option.value}
+                    value={option.value}
+                  >
+                    {option.label}
+                  </MenuItem>
+                ))}
+              </Select>
+              {fieldError && <FormHelperText>{fieldError}</FormHelperText>}
+              {!fieldError && field.description && (
+                <FormHelperText>{field.description}</FormHelperText>
+              )}
+            </FormControl>
           </Box>
         );
 
@@ -358,7 +446,7 @@ const DynamicCredentialForm = ({
         >
           <Trans
             i18nKey="components.dynamicCredentialForm.title"
-            values={{ schemaName: schema.name }}
+            values={{ schemaName: schema.title }}
             components={{ bold: <strong /> }}
           />
         </Typography>

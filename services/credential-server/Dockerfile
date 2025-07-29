@@ -3,6 +3,8 @@ FROM --platform=$TARGETPLATFORM node:21.5.0 AS builder
 WORKDIR /app
 RUN apt update -qq && apt install -y build-essential && apt clean
 COPY package*.json ./
+ENV PUPPETEER_SKIP_DOWNLOAD=true
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 RUN npm install
 COPY . .
 RUN npm run build

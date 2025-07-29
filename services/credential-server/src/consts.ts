@@ -7,14 +7,22 @@ export const LE_SCHEMA_SAID = "ENPXp1vQzRF6JwIuS-mp2U8Uf1MoADoP_GqQ62VsDZWY";
 export const F_EMPLOYEE_DEMO_SCHEMA_SAID =
   "EL9oOWU_7zQn_rD--Xsgi3giCWnFDaNvFMUGTOZx1ARO";
 export const KYC_CREDENTIAL_SCHEMA_SAID =
-  "EOL2-fVvnFDrYc_iM6MS8gyNnLDYGB8-cST1N053k-Gg";
-export const ACDC_SCHEMAS_ID = [
+  "EOHVcOHvDMXeizlUSPMNXcRfOfjEzze7gmUJaHWb6vuz";
+// Default schemas that need to be loaded via OOBI from remote KERI system
+export const DEFAULT_SCHEMAS_ID = [
   QVI_SCHEMA_SAID,
   LE_SCHEMA_SAID,
   RARE_EVO_DEMO_SCHEMA_SAID,
+];
+
+// Custom schemas that are handled locally (including demo schemas that fail OOBI loading)
+export const CUSTOM_SCHEMAS_ID = [
   F_EMPLOYEE_DEMO_SCHEMA_SAID,
   KYC_CREDENTIAL_SCHEMA_SAID,
 ];
+
+// All schemas (for backward compatibility)
+export const ACDC_SCHEMAS_ID = [...DEFAULT_SCHEMAS_ID, ...CUSTOM_SCHEMAS_ID];
 
 export const ACDC_SCHEMAS = [
   {

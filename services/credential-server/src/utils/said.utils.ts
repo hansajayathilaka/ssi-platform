@@ -5,7 +5,7 @@
  * for JSON schemas according to KERI specifications using the official saidify library.
  */
 
-import { saidify, verify } from "saidify";
+import { saidify } from "saidify";
 
 /**
  * JSON Schema structure for SAID computation
@@ -51,6 +51,7 @@ export function computeSaid(
 
 /**
  * SAIDify a JSON schema by computing and inserting the SAID into $id field
+ * Handles ACDC schemas with nested attributes blocks
  *
  * @param schema - The JSON schema object with placeholder $id
  * @param options - SAID computation options
@@ -60,14 +61,25 @@ export function saidifySchema(
   schema: JsonSchema,
   options: SaidOptions = {}
 ): JsonSchema {
-  // Create a copy of the schema with empty $id for SAID computation
-  const schemaForSaid = { ...schema, $id: "" };
+  // Create a deep copy of the schema
+  const schemaForSaid = JSON.parse(JSON.stringify(schema));
 
-  // Use the saidify library to compute the SAID and get the self-addressed data
-  const [said, sad] = saidify(schemaForSaid, "$id");
+  // First, SAIDify the attributes block if it exists (ACDC format)
+  if (schemaForSaid.properties?.a?.oneOf?.[1]) {
+    const attributesBlock = schemaForSaid.properties.a.oneOf[1];
+    if (attributesBlock.$id !== undefined) {
+      // Set empty $id for attributes block SAIDification
+      attributesBlock.$id = "";
+      const [attrSaid, attrSad] = saidify(attributesBlock, "$id");
+      schemaForSaid.properties.a.oneOf[1] = attrSad;
+    }
+  }
 
-  // The SAD is already an object, no need to parse
-  return sad as JsonSchema;
+  // Then SAIDify the main schema
+  schemaForSaid.$id = "";
+  const [mainSaid, mainSad] = saidify(schemaForSaid, "$id");
+
+  return mainSad as JsonSchema;
 }
 
 /**
@@ -86,8 +98,9 @@ export function validateSchemaSaid(
   }
 
   try {
-    // Use the saidify library's verify function
-    return verify(schema, schema.$id);
+    // Compute the SAID for the schema and compare with existing $id
+    const computedSaid = computeSaid(schema, options);
+    return computedSaid === schema.$id;
   } catch (error) {
     console.error("Error validating SAID:", error);
     return false;

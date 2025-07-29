@@ -1,0 +1,35 @@
+{
+  "name": "Test Schema Without ID",
+  "version": "1.0.0",
+  "description": "Testing schema creation without providing an ID",
+  "fields": [
+    {
+      "name": "testField",
+      "type": "string",
+      "required": true,
+      "displayName": "Test Field",
+      "description": "A test field"
+    },
+    {
+      "name": "emailField",
+      "type": "email",
+      "required": false,
+      "displayName": "Email Field",
+      "description": "An email field"
+    }
+  ],
+  "metadata": {
+    "author": "Test Author",
+    "organization": "Test Org",
+    "category": "Test",
+    "tags": [
+      "test",
+      "validation"
+    ],
+    "isActive": true,
+    "isPublic": false
+  },
+  "createdAt": "2025-07-29T20:34:05.670Z",
+  "updatedAt": "2025-07-29T20:34:05.671Z",
+  "id": "EOG2aiJXwJMwAmNqyR4ByPOhJcav3sqPlXXtEcFBXzfz"
+}

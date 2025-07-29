@@ -1,17 +1,5 @@
-// Extend the Window interface to include runtime configuration
-interface CustomWindow extends Window {
-  __RUNTIME_CONFIG__?: {
-    SERVER_URL?: string;
-  };
-}
-
-declare let window: CustomWindow;
-
-// Get the server URL from runtime configuration (envfile.js) or Vite's .env
-const serverUrl =
-  (typeof window !== "undefined" && window.__RUNTIME_CONFIG__?.SERVER_URL) ||
-  import.meta.env.VITE_SERVER_URL || // Vite's .env system
-  "http://localhost:3001"; // Default fallback
+// Get the server URL from Vite environment variables
+const serverUrl = import.meta.env.VITE_SERVER_URL || "http://localhost:3001";
 
 // Define the config object
 const config = {

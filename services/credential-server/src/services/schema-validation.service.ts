@@ -36,6 +36,32 @@ export class SchemaValidationService {
   }
 
   /**
+   * Validate a schema without requiring an ID (for new schemas before SAID generation)
+   */
+  validateSchemaWithoutId(
+    schema: Omit<CustomSchema, "id">
+  ): SchemaValidationResult {
+    const errors: SchemaValidationError[] = [];
+
+    // Validate required schema properties (excluding ID)
+    this.validateRequiredSchemaFieldsWithoutId(schema, errors);
+
+    // Validate schema fields
+    this.validateSchemaFields(schema.fields, errors);
+
+    // Validate schema metadata
+    this.validateSchemaMetadata(
+      { ...schema, id: "temp" } as CustomSchema,
+      errors
+    );
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+    };
+  }
+
+  /**
    * Validate required schema fields
    */
   private validateRequiredSchemaFields(
@@ -55,6 +81,28 @@ export class SchemaValidationService {
       });
     }
 
+    // Common validation for both methods
+    this.validateCommonSchemaFields(schema, errors);
+  }
+
+  /**
+   * Validate required schema fields without ID (for new schemas)
+   */
+  private validateRequiredSchemaFieldsWithoutId(
+    schema: Omit<CustomSchema, "id">,
+    errors: SchemaValidationError[]
+  ): void {
+    // Common validation for both methods
+    this.validateCommonSchemaFields(schema, errors);
+  }
+
+  /**
+   * Validate common schema fields (used by both validation methods)
+   */
+  private validateCommonSchemaFields(
+    schema: Omit<CustomSchema, "id"> | CustomSchema,
+    errors: SchemaValidationError[]
+  ): void {
     // Validate name
     if (
       !schema.name ||

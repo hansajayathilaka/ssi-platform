@@ -1,7 +1,9 @@
 interface CredentialIssueRequest {
   schemaSaid: string;
   aid: string;
-  [key: string]: string;
+  attribute?: Record<string, any>;
+  attributes?: string[]; // For request presentation
+  [key: string]: any; // For backward compatibility
 }
 
 export type { CredentialIssueRequest };

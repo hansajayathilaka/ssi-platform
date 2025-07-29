@@ -19,6 +19,7 @@ const customSecondaryColor = process.env.CUSTOM_SECONDARY_COLOR ?? "#dc004e";
 
 // Schema configuration
 const customSchemasPath = process.env.CUSTOM_SCHEMAS_PATH ?? "./data/schemas";
+const builtInSchemasPath = process.env.BUILT_IN_SCHEMAS_PATH ?? "./schemas";
 const enableSchemaManagement = process.env.ENABLE_SCHEMA_MANAGEMENT === "true";
 const schemaValidationStrict = process.env.SCHEMA_VALIDATION_STRICT !== "false";
 
@@ -38,6 +39,7 @@ export const config = {
   },
   schemas: {
     customSchemasPath: customSchemasPath,
+    builtInSchemasPath: builtInSchemasPath,
     enableManagement: enableSchemaManagement,
     validationStrict: schemaValidationStrict,
     backupOnUpdate: true,

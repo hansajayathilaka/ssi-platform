@@ -17,4 +17,16 @@ export default defineConfig({
       usePolling: true,
     },
   },
+  build: {
+    outDir: "dist",
+    assetsDir: "assets",
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: undefined,
+      },
+    },
+    chunkSizeWarningLimit: 2000,
+  },
+  base: "/",
 });
