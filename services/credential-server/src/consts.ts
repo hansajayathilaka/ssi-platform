@@ -31,3 +31,38 @@ export const ACDC_SCHEMAS = [
     name: "Legal Entity vLEI Credential",
   },
 ];
+
+// Custom schema constants
+export const CUSTOM_SCHEMA_PREFIX = "custom-schema-";
+export const SAMPLE_PERSON_SCHEMA_ID = "sample-person-credential";
+
+/**
+ * Get all valid schema IDs including both default and custom schemas
+ * This function should be used instead of ACDC_SCHEMAS_ID for validation
+ */
+export async function getAllValidSchemaIds(): Promise<string[]> {
+  // Import here to avoid circular dependency
+  const { SchemaStorageService } = await import(
+    "./services/schema-storage.service"
+  );
+  const { config } = await import("./config");
+
+  const schemaStorageService = new SchemaStorageService({
+    schemasPath: config.schemas.customSchemasPath,
+    enableValidation: config.schemas.validationStrict,
+    backupOnUpdate: config.schemas.backupOnUpdate,
+  });
+
+  try {
+    const customSchemas = await schemaStorageService.loadAllSchemas();
+    const activeCustomSchemaIds = customSchemas
+      .filter((schema) => schema.metadata.isActive)
+      .map((schema) => schema.id);
+
+    return [...ACDC_SCHEMAS_ID, ...activeCustomSchemaIds];
+  } catch (error) {
+    console.error("Error loading custom schema IDs:", error);
+    // Fallback to default schemas only
+    return ACDC_SCHEMAS_ID;
+  }
+}

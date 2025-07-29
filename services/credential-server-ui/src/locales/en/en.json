@@ -87,6 +87,11 @@
           "success": "Connection(s) deleted successfully",
           "error": "Unable to delete connection(s)"
         }
+      },
+      "issueCredential": {
+        "title": "Select Connection for Credential Issuance",
+        "description": "Select a connection to issue the <strong>{{schemaName}}</strong> credential to.",
+        "cancel": "Cancel"
       }
     },
     "connectionDetails": {
@@ -219,6 +224,21 @@
         }
       }
     },
+    "issueCredential": {
+      "title": "Issue Custom Credential",
+      "loading": "Loading credential form...",
+      "recipientLabel": "Issuing to",
+      "errors": {
+        "schemaNotFound": "Schema not found",
+        "recipientRequired": "Recipient is required"
+      },
+      "actions": {
+        "back": "Back"
+      },
+      "messages": {
+        "success": "Credential issued successfully"
+      }
+    },
     "requestPresentation": {
       "title": "Requested Presentations ({{number}})",
       "action": "Request Presentation",
@@ -279,5 +299,39 @@
   "reduxStoreErrors": {
     "fetchSchema": "Unable to get list schema",
     "fetchSchemaDetail": "Unable to get schema detail"
+  },
+  "components": {
+    "dynamicCredentialForm": {
+      "title": "Issue <bold>{{schemaName}}</bold> Credential",
+      "loading": "Loading schema...",
+      "errors": {
+        "schemaNotFound": "Schema not found or could not be loaded",
+        "schemaLoadFailed": "Failed to load schema"
+      },
+      "validation": {
+        "required": "{{field}} is required",
+        "invalidNumber": "{{field}} must be a valid number",
+        "invalidEmail": "{{field}} must be a valid email address",
+        "invalidUrl": "{{field}} must be a valid URL",
+        "invalidDate": "{{field}} must be a valid date",
+        "summary": "Please fix the following errors before submitting:"
+      },
+      "placeholders": {
+        "string": "Enter text...",
+        "number": "Enter number...",
+        "email": "Enter email address...",
+        "url": "Enter URL...",
+        "date": "Select date..."
+      },
+      "actions": {
+        "submit": "Issue Credential",
+        "submitting": "Issuing...",
+        "cancel": "Cancel"
+      },
+      "messages": {
+        "success": "Credential issued successfully",
+        "error": "Failed to issue credential"
+      }
+    }
   }
 }

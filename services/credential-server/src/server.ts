@@ -1,7 +1,12 @@
+import dotenv from "dotenv";
+import { join } from "path";
+
+// Load environment variables from .env.production
+dotenv.config({ path: join(__dirname, "../../../.env.production") });
+
 import bodyParser from "body-parser";
 import cors from "cors";
 import express from "express";
-import { join } from "path";
 import { SignifyClient, ready as signifyReady, Tier } from "signify-ts";
 import { config } from "./config";
 import { ACDC_SCHEMAS_ID, ISSUER_NAME, QVI_NAME } from "./consts";
@@ -20,6 +25,9 @@ import {
 } from "./utils/utils";
 
 async function getSignifyClient(bran: string): Promise<SignifyClient> {
+  console.log("Connecting to Signify server:", config.keria.url);
+  console.log("Connecting to Signify boot url:", config.keria.bootUrl);
+
   const client = new SignifyClient(
     config.keria.url,
     bran,
@@ -30,6 +38,7 @@ async function getSignifyClient(bran: string): Promise<SignifyClient> {
   try {
     await client.connect();
   } catch (err) {
+    console.error("Error connecting to Signify server:", err);
     await client.boot();
     await client.connect();
   }
@@ -144,6 +153,18 @@ async function startServer() {
       },
     })
   );
+
+  // Serve branding assets
+  if (config.branding.logoPath) {
+    app.get("/static/branding/logo", (req, res) => {
+      res.sendFile(config.branding.logoPath, (err) => {
+        if (err) {
+          console.error("Error serving logo:", err);
+          res.status(404).json({ error: "Logo not found" });
+        }
+      });
+    });
+  }
   app.use(bodyParser.json());
   app.use(router);
   app.use((err, req, res, next) => {

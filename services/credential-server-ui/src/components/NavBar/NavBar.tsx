@@ -10,6 +10,8 @@ import {
   SettingsOutlined,
   SwapHorizontalCircle,
   SwapHorizontalCircleOutlined,
+  Schema,
+  SchemaOutlined,
 } from "@mui/icons-material";
 import {
   AppBar,
@@ -28,8 +30,9 @@ import { Link, useLocation } from "react-router-dom";
 import Logo from "../../assets/Logo.svg";
 import { RoutePath } from "../../const/route";
 import { i18n } from "../../i18n";
+import { useBranding } from "../../hooks/useBranding";
 import { SwitchAccount } from "../SwitchAccount";
-import { DrawerContent } from "./components/DrawerContent";
+import { DrawerContent, LogoComponent } from "./components";
 import "./NavBar.scss";
 import { isActivePath } from "./helper";
 import { useAppSelector } from "../../store/hooks";
@@ -63,6 +66,12 @@ const menuItems = [
     icons: [<BadgeFull />, <BadgeOutlined />],
   },
   {
+    key: "schemaManagement",
+    label: "Schema Management",
+    path: RoutePath.SchemaManagement,
+    icons: [<Schema />, <SchemaOutlined />],
+  },
+  {
     key: "requestPresentation",
     label: i18n.t("navbar.requestPresentation"),
     path: RoutePath.RequestPresentation,
@@ -77,10 +86,11 @@ const NavBar = ({ window }: Props) => {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const roleViewIndex = useAppSelector(getRoleView) as RoleIndex;
+  const { organizationName, logoUrl, hasCustomLogo } = useBranding();
 
   const displayMenuItems = menuItems.filter((item) =>
     roleViewIndex !== RoleIndex.ISSUER
-      ? item.key !== "credentials"
+      ? item.key !== "credentials" && item.key !== "schemaManagement"
       : item.key !== "requestPresentation"
   );
 
@@ -120,11 +130,11 @@ const NavBar = ({ window }: Props) => {
               to={"/"}
               className="logo-button"
               disableRipple
+              title={organizationName}
             >
-              <img
-                className="header-logo"
-                alt="veridian-logo"
-                src={Logo}
+              <LogoComponent
+                logoUrl={logoUrl}
+                organizationName={organizationName}
               />
             </Button>
           </Box>
@@ -164,12 +174,25 @@ const NavBar = ({ window }: Props) => {
               to={"/"}
               disableRipple
               className="logo-button"
+              title={organizationName}
             >
-              <img
-                className="header-logo"
-                alt="veridian-logo"
-                src={Logo}
+              <LogoComponent
+                logoUrl={logoUrl}
+                organizationName={organizationName}
               />
+              <Typography
+                variant="h6"
+                component="span"
+                className="organization-name"
+                sx={{
+                  ml: 1,
+                  fontWeight: 600,
+                  color: "text.primary",
+                  display: { xs: "none", sm: "inline" },
+                }}
+              >
+                {organizationName}
+              </Typography>
             </Button>
             {displayMenuItems.map((item) => {
               const isActive = isActivePath(item.path, location.pathname);

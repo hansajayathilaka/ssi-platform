@@ -1,43 +1,42 @@
-version: "3.9"
 services:
-  keria:
-    container_name: idw-keria
-    restart: unless-stopped
-    image: cardanofoundation/cf-idw-keria:1.1.0-PR1223-25dbe26-GHRUN15555427316
-    environment:
-      - KERI_AGENT_CORS=true
-      - ALLOW_INTRODUCTIONS=true
-      - REMOTE_SIGNING=true
-    volumes:
-      - keria-data:/usr/local/var/keri
-      - ./keria-config/config.json:/keria/scripts/keri/cf/backer-oobis.json
-    entrypoint: keria start --config-file backer-oobis --config-dir ./scripts --loglevel INFO
-    ports:
-      - 3901:3901
-      - 3902:3902
-      - 3903:3903
+  # keria:
+  #   container_name: idw-keria
+  #   restart: unless-stopped
+  #   image: cardanofoundation/cf-idw-keria:1.1.0-PR1223-25dbe26-GHRUN15555427316
+  #   environment:
+  #     - KERI_AGENT_CORS=true
+  #     - ALLOW_INTRODUCTIONS=true
+  #     - REMOTE_SIGNING=true
+  #   volumes:
+  #     - keria-data:/usr/local/var/keri
+  #     - ./keria-config/config.json:/keria/scripts/keri/cf/backer-oobis.json
+  #   entrypoint: keria start --config-file backer-oobis --config-dir ./scripts --loglevel INFO
+  #   ports:
+  #     - 3901:3901
+  #     - 3902:3902
+  #     - 3903:3903
 
-  witnesses:
-    container_name: idw-witnesses
-    restart: unless-stopped
-    image: weboftrust/keri:1.1.26
-    environment:
-        - PYTHONUNBUFFERED=1
-        - PYTHONIOENCODING=UTF-8
-    entrypoint:
-        - kli
-    command:
-        - witness
-        - demo
-    volumes:
-        - ./keria-config/witnesses:/keripy/scripts/keri/cf/main
-    ports:
-      - 5642:5642
-      - 5643:5643
-      - 5644:5644
-      - 5645:5645
-      - 5646:5646
-      - 5647:5647
+  # witnesses:
+  #   container_name: idw-witnesses
+  #   restart: unless-stopped
+  #   image: weboftrust/keri:1.1.26
+  #   environment:
+  #       - PYTHONUNBUFFERED=1
+  #       - PYTHONIOENCODING=UTF-8
+  #   entrypoint:
+  #       - kli
+  #   command:
+  #       - witness
+  #       - demo
+  #   volumes:
+  #       - ./keria-config/witnesses:/keripy/scripts/keri/cf/main
+  #   ports:
+  #     - 5642:5642
+  #     - 5643:5643
+  #     - 5644:5644
+  #     - 5645:5645
+  #     - 5646:5646
+  #     - 5647:5647
 
   cred-issuance:
     container_name: cred-issuance
@@ -47,12 +46,27 @@ services:
     restart: unless-stopped
     environment:
       - OOBI_ENDPOINT=http://cred-issuance:3001
-      - KERIA_ENDPOINT=http://keria:3901
-      - KERIA_BOOT_ENDPOINT=http://keria:3903
+      - KERIA_ENDPOINT=http://keria.hansajayathilaka.com
+      - KERIA_BOOT_ENDPOINT=https://keria-boot.hansajayathilaka.com
+      # Branding Configuration
+      - CUSTOM_ORG_NAME=${CUSTOM_ORG_NAME:-Default Organization}
+      - CUSTOM_LOGO_PATH=${CUSTOM_LOGO_PATH:-/app/assets/logo.png}
+      - CUSTOM_PRIMARY_COLOR=${CUSTOM_PRIMARY_COLOR:-#1976d2}
+      - CUSTOM_SECONDARY_COLOR=${CUSTOM_SECONDARY_COLOR:-#dc004e}
+      # Schema Configuration
+      - CUSTOM_SCHEMAS_PATH=${CUSTOM_SCHEMAS_PATH:-/app/data/schemas}
+      - ENABLE_SCHEMA_MANAGEMENT=${ENABLE_SCHEMA_MANAGEMENT:-true}
+      - SCHEMA_VALIDATION_STRICT=${SCHEMA_VALIDATION_STRICT:-true}
+      # Feature Flags
+      - ENABLE_BRANDING_CUSTOMIZATION=${ENABLE_BRANDING_CUSTOMIZATION:-true}
+      - ENABLE_BULK_CREDENTIAL_GENERATION=${ENABLE_BULK_CREDENTIAL_GENERATION:-true}
     ports:
       - 3001:3001
     volumes:
       - issuer-server-data:/app/data
+      - custom-schemas:/app/data/schemas
+      - branding-assets:/app/assets
+      - ./custom-config:/app/config:ro
 
   cred-issuance-ui:
     container_name: cred-issuance-ui
@@ -62,9 +76,21 @@ services:
     restart: unless-stopped
     environment:
       - VITE_SERVER_URL=${VITE_SERVER_URL:-http://localhost:3001}
+      # Branding Configuration for UI
+      - VITE_CUSTOM_ORG_NAME=${CUSTOM_ORG_NAME:-Default Organization}
+      - VITE_CUSTOM_LOGO_PATH=${CUSTOM_LOGO_PATH:-/assets/logo.png}
+      - VITE_CUSTOM_PRIMARY_COLOR=${CUSTOM_PRIMARY_COLOR:-#1976d2}
+      - VITE_CUSTOM_SECONDARY_COLOR=${CUSTOM_SECONDARY_COLOR:-#dc004e}
+      # Feature Flags for UI
+      - VITE_ENABLE_BRANDING_CUSTOMIZATION=${ENABLE_BRANDING_CUSTOMIZATION:-true}
+      - VITE_ENABLE_BULK_CREDENTIAL_GENERATION=${ENABLE_BULK_CREDENTIAL_GENERATION:-true}
     ports:
       - 3000:80
+    volumes:
+      - branding-assets:/usr/share/nginx/html/assets:ro
 
 volumes:
   keria-data:
   issuer-server-data:
+  custom-schemas:
+  branding-assets:

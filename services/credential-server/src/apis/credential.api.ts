@@ -3,11 +3,192 @@ import { Operation, Saider, Serder, SignifyClient } from "signify-ts";
 import { ACDC_SCHEMAS_ID, ISSUER_NAME, LE_SCHEMA_SAID } from "../consts";
 import { getRegistry, OP_TIMEOUT, waitAndGetDoneOp } from "../utils/utils";
 import { QviCredential } from "../utils/utils.types";
+import { SchemaStorageService } from "../services/schema-storage.service";
+import { config } from "../config";
 
 export const UNKNOW_SCHEMA_ID = "Unknow Schema ID: ";
 export const CREDENTIAL_NOT_FOUND = "Not found credential with ID: ";
 export const CREDENTIAL_REVOKED_ALREADY =
   "The credential has been revoked already";
+
+// Initialize schema storage service
+const schemaStorageService = new SchemaStorageService({
+  schemasPath: config.schemas.customSchemasPath,
+  enableValidation: config.schemas.validationStrict,
+  backupOnUpdate: config.schemas.backupOnUpdate,
+});
+
+/**
+ * Check if a schema ID is valid (either default or custom)
+ */
+async function isValidSchemaId(schemaSaid: string): Promise<boolean> {
+  // Check if it's a default schema
+  if (ACDC_SCHEMAS_ID.some((schemaId) => schemaId === schemaSaid)) {
+    return true;
+  }
+
+  // Check if it's a custom schema
+  const customSchema = await schemaStorageService.loadSchema(schemaSaid);
+  return customSchema !== null && customSchema.metadata.isActive;
+}
+
+/**
+ * Validate credential data against schema (for custom schemas)
+ */
+async function validateCredentialData(
+  schemaSaid: string,
+  credentialData: any
+): Promise<{ isValid: boolean; errors: string[] }> {
+  // For default schemas, skip validation (handled by existing logic)
+  if (ACDC_SCHEMAS_ID.some((schemaId) => schemaId === schemaSaid)) {
+    return { isValid: true, errors: [] };
+  }
+
+  // For custom schemas, validate against schema definition
+  const customSchema = await schemaStorageService.loadSchema(schemaSaid);
+  if (!customSchema) {
+    return { isValid: false, errors: ["Schema not found"] };
+  }
+
+  const errors: string[] = [];
+
+  // Validate required fields
+  for (const field of customSchema.fields) {
+    if (
+      field.required &&
+      (credentialData[field.name] === undefined ||
+        credentialData[field.name] === null ||
+        credentialData[field.name] === "")
+    ) {
+      errors.push(
+        `Required field '${field.displayName || field.name}' is missing`
+      );
+    }
+
+    // Basic type validation
+    if (
+      credentialData[field.name] !== undefined &&
+      credentialData[field.name] !== null
+    ) {
+      const value = credentialData[field.name];
+      switch (field.type) {
+        case "number":
+          if (isNaN(Number(value))) {
+            errors.push(
+              `Field '${field.displayName || field.name}' must be a number`
+            );
+          }
+          break;
+        case "boolean":
+          if (
+            typeof value !== "boolean" &&
+            value !== "true" &&
+            value !== "false"
+          ) {
+            errors.push(
+              `Field '${field.displayName || field.name}' must be a boolean`
+            );
+          }
+          break;
+        case "email":
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(value)) {
+            errors.push(
+              `Field '${
+                field.displayName || field.name
+              }' must be a valid email address`
+            );
+          }
+          break;
+        case "url":
+          try {
+            new URL(value);
+          } catch {
+            errors.push(
+              `Field '${field.displayName || field.name}' must be a valid URL`
+            );
+          }
+          break;
+        case "date":
+          if (isNaN(Date.parse(value))) {
+            errors.push(
+              `Field '${field.displayName || field.name}' must be a valid date`
+            );
+          }
+          break;
+      }
+
+      // Additional validation rules
+      if (field.validation) {
+        for (const rule of field.validation) {
+          switch (rule.type) {
+            case "minLength":
+              if (
+                typeof value === "string" &&
+                value.length < Number(rule.value)
+              ) {
+                errors.push(
+                  rule.message ||
+                    `Field '${
+                      field.displayName || field.name
+                    }' must be at least ${rule.value} characters long`
+                );
+              }
+              break;
+            case "maxLength":
+              if (
+                typeof value === "string" &&
+                value.length > Number(rule.value)
+              ) {
+                errors.push(
+                  rule.message ||
+                    `Field '${
+                      field.displayName || field.name
+                    }' must be no more than ${rule.value} characters long`
+                );
+              }
+              break;
+            case "pattern":
+              if (
+                typeof value === "string" &&
+                !new RegExp(rule.value as string).test(value)
+              ) {
+                errors.push(
+                  rule.message ||
+                    `Field '${
+                      field.displayName || field.name
+                    }' does not match required pattern`
+                );
+              }
+              break;
+            case "min":
+              if (typeof value === "number" && value < Number(rule.value)) {
+                errors.push(
+                  rule.message ||
+                    `Field '${
+                      field.displayName || field.name
+                    }' must be at least ${rule.value}`
+                );
+              }
+              break;
+            case "max":
+              if (typeof value === "number" && value > Number(rule.value)) {
+                errors.push(
+                  rule.message ||
+                    `Field '${
+                      field.displayName || field.name
+                    }' must be no more than ${rule.value}`
+                );
+              }
+              break;
+          }
+        }
+      }
+    }
+  }
+
+  return { isValid: errors.length === 0, errors };
+}
 
 export async function issueAcdcCredential(
   req: Request,
@@ -19,10 +200,26 @@ export async function issueAcdcCredential(
 
   const { schemaSaid, aid, attribute } = req.body;
 
-  if (!ACDC_SCHEMAS_ID.some((schemaId) => schemaId === schemaSaid)) {
+  // Check if schema ID is valid (either default or custom)
+  const isValid = await isValidSchemaId(schemaSaid);
+  if (!isValid) {
     res.status(409).send({
       success: false,
-      data: "",
+      data: `${UNKNOW_SCHEMA_ID}${schemaSaid}`,
+    });
+    return;
+  }
+
+  // Validate credential data against schema (especially for custom schemas)
+  const validation = await validateCredentialData(schemaSaid, attribute);
+  if (!validation.isValid) {
+    res.status(400).send({
+      success: false,
+      error: {
+        code: "CREDENTIAL_VALIDATION_FAILED",
+        message: "Credential data validation failed",
+        details: validation.errors,
+      },
     });
     return;
   }
@@ -32,6 +229,11 @@ export async function issueAcdcCredential(
 
   let issueParams: any;
   let grantParams: any;
+
+  // Check if this is a custom schema
+  const isCustomSchema = !ACDC_SCHEMAS_ID.some(
+    (schemaId) => schemaId === schemaSaid
+  );
 
   if (schemaSaid === LE_SCHEMA_SAID) {
     const qviCredential: QviCredential = await client
@@ -69,6 +271,8 @@ export async function issueAcdcCredential(
       ancAttachment: true,
     };
   } else {
+    // For both default and custom schemas, use the same structure
+    // Custom schemas use their ID as the schema SAID
     issueParams = {
       ri: keriRegistryRegk,
       s: schemaSaid,
@@ -77,6 +281,21 @@ export async function issueAcdcCredential(
         ...attribute,
       },
     };
+
+    // Add metadata for custom schemas
+    if (isCustomSchema) {
+      const customSchema = await schemaStorageService.loadSchema(schemaSaid);
+      if (customSchema) {
+        issueParams.a = {
+          i: aid,
+          ...attribute,
+          // Add schema metadata to the credential
+          _schemaName: customSchema.name,
+          _schemaVersion: customSchema.version,
+          _issuedAt: new Date().toISOString(),
+        };
+      }
+    }
 
     grantParams = {
       senderName: ISSUER_NAME,

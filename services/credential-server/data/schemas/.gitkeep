@@ -1,0 +1,7 @@
+# This directory stores custom credential schemas
+# 
+# Custom schemas are stored as JSON files with the following naming convention:
+# {schema-id}.json
+#
+# This .gitkeep file ensures the directory is tracked in version control
+# while allowing the actual schema files to be ignored if needed.

@@ -17,9 +17,17 @@
     &.logo-button {
       padding-inline: 0;
       margin-right: 2rem;
+      display: flex;
+      align-items: center;
 
       .header-logo {
         margin: 0;
+      }
+
+      .organization-name {
+        margin-left: 0.5rem;
+        font-weight: 600;
+        white-space: nowrap;
       }
     }
 

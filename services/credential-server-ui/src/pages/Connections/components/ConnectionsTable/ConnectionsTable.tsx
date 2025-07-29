@@ -34,7 +34,13 @@ import { FilterBar } from "../../../../components/FilterBar/FilterBar";
 import { filter } from "../../../../components/FilterBar";
 import { FilterData } from "../../../../components/FilterBar/FilterBar.types";
 
-const ConnectionsTable: React.FC = () => {
+interface ConnectionsTableProps {
+  issueSchemaId?: string | null;
+}
+
+const ConnectionsTable: React.FC<ConnectionsTableProps> = ({
+  issueSchemaId,
+}) => {
   const dispatch = useDispatch<AppDispatch>();
   const { enqueueSnackbar } = useSnackbar();
   const roleViewIndex = useAppSelector(getRoleView) as RoleIndex;
@@ -114,8 +120,14 @@ const ConnectionsTable: React.FC = () => {
   };
 
   const issueCredential = (connectionId: string) => {
-    setOpenIssueModal(true);
-    setSelectedConnectionId(connectionId);
+    if (issueSchemaId) {
+      // Navigate directly to the dynamic credential form
+      nav(`/issue-credential/${issueSchemaId}?recipient=${connectionId}`);
+    } else {
+      // Use the existing modal for default schemas
+      setOpenIssueModal(true);
+      setSelectedConnectionId(connectionId);
+    }
   };
 
   const isIssuer = roleViewIndex === RoleIndex.ISSUER;
@@ -260,7 +272,8 @@ const ConnectionsTable: React.FC = () => {
                         handleOpenModal,
                         handOpenConnectionDetails,
                         issueCredential,
-                        requestCred
+                        requestCred,
+                        issueSchemaId
                       )}
                     />
                   </TableCell>

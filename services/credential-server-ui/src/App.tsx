@@ -15,6 +15,8 @@ import { Credentials } from "./pages/Credentials";
 import { NoPage } from "./pages/NoPage";
 import { Notifications } from "./pages/Notifications";
 import { Settings } from "./pages/Settings";
+import { SchemaManagement, SchemaForm } from "./pages/SchemaManagement";
+import { IssueCredential } from "./pages/IssueCredential";
 import { useAppDispatch, useAppSelector } from "./store/hooks";
 import {
   fetchContactCredentials,
@@ -113,6 +115,22 @@ const App = () => {
                 <Route
                   path={RoutePath.RequestPresentation}
                   element={<RequestPresentation />}
+                />
+                <Route
+                  path={RoutePath.SchemaManagement}
+                  element={<SchemaManagement />}
+                />
+                <Route
+                  path={RoutePath.SchemaCreate}
+                  element={<SchemaForm />}
+                />
+                <Route
+                  path={RoutePath.SchemaEdit}
+                  element={<SchemaForm />}
+                />
+                <Route
+                  path={RoutePath.IssueCredential}
+                  element={<IssueCredential />}
                 />
                 <Route
                   path="*"

@@ -14,8 +14,21 @@ export const createMenuItems = (
   handleOpenModal: (connectionId: string) => void,
   handleOpenDetail: (connectionId: string) => void,
   issueCredential: (connectionId: string) => void,
-  requestCredential: (connectionId: string) => void
+  requestCredential: (connectionId: string) => void,
+  issueSchemaId?: string | null
 ) => {
+  // If we're in schema issuance mode, show only the issue credential action
+  if (issueSchemaId && userRole === RoleIndex.ISSUER) {
+    return [
+      {
+        label: i18n.t("pages.connections.issueCredential"),
+        icon: React.createElement(AddCircleOutlineOutlined),
+        className: "icon-left",
+        action: () => issueCredential(connectionId),
+      },
+    ];
+  }
+
   const items = [
     {
       label: i18n.t("pages.connections.viewDetails"),

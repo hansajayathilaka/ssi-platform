@@ -1,0 +1,8 @@
+{
+  "organizationName": "Sample Organization",
+  "logoUrl": "/assets/custom-logo.png",
+  "primaryColor": "#2196f3",
+  "secondaryColor": "#f44336",
+  "favicon": "/assets/favicon.ico",
+  "customCSS": ""
+}

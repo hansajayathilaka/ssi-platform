@@ -37,6 +37,7 @@ const config = {
     requestDisclosure: "/requestDisclosure",
     revokeCredential: "/revokeCredential",
     schemas: "/schemas",
+    branding: "/branding",
   },
 };
 

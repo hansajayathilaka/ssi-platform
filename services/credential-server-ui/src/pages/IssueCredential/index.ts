@@ -1,0 +1,1 @@
+export { IssueCredential } from "./IssueCredential";
