@@ -8,7 +8,11 @@
         "test:watch": "jest --watch",
         "start": "node build/server.js",
         "dev": "npx nodemon",
-        "build": "rimraf ./build && tsc && copyfiles -u 1 src/schemas/* build"
+        "build": "rimraf ./build && tsc && copyfiles -u 1 src/schemas/* build && copyfiles -u 1 examples/* build/examples",
+        "saidify": "ts-node src/cli/saidify.ts"
+    },
+    "bin": {
+        "saidify": "./build/cli/saidify.js"
     },
     "author": "",
     "license": "ISC",
@@ -18,6 +22,7 @@
         "cors": "^2.8.5",
         "dotenv": "^17.2.1",
         "express": "^5.0.0-beta.3",
+        "saidify": "^0.2.2",
         "signify-ts": "github:WebOfTrust/signify-ts#1a20279b10cdc9a7fb53e121073ccdcae744974c"
     },
     "devDependencies": {

@@ -3,15 +3,15 @@ import { Contact } from "../../pages/Connections/components/ConnectionsTable/Con
 interface ReviewProps {
   credentialType?: string;
   connectionId?: string;
-  attribute: Record<string, string>;
+  attribute: Record<string, any>;
   connections: Contact[];
 }
 
 interface InputAttributeProps {
   attributes: string[];
-  value: Record<string, string>;
-  setValue: (key: string, value: string) => void;
-  required: boolean;
+  value: Record<string, any>;
+  setValue: (key: string, value: any) => void;
+  required: string[];
 }
 
 interface IssueCredListData {

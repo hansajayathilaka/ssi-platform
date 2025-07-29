@@ -37,11 +37,91 @@ const IssueCredentialModal = ({
   const [selectedConnection, setSelectedConnection] = useState(connectionId);
   const [selectedCredTemplate, setSelectedCredTemplate] =
     useState(credentialTypeId);
-  const [attributes, setAttributes] = useState<Record<string, string>>({});
+  const [attributes, setAttributes] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(false);
   const schema = useSchemaDetail(selectedCredTemplate);
-  const properties = schema?.properties?.a?.oneOf?.[1]?.properties || {};
-  const requiredList = schema?.properties?.a?.oneOf?.[1]?.required || [];
+
+  // Recursively find all form fields in the JSON schema
+  const extractFormFields = (
+    schemaObj: any,
+    path: string[] = []
+  ): {
+    properties: Record<string, any>;
+    required: string[];
+    fieldPaths: Record<string, string[]>;
+  } => {
+    const result = {
+      properties: {} as Record<string, any>,
+      required: [] as string[],
+      fieldPaths: {} as Record<string, string[]>,
+    };
+
+    if (!schemaObj || typeof schemaObj !== "object") {
+      return result;
+    }
+
+    // Check if this level has properties
+    if (schemaObj.properties && typeof schemaObj.properties === "object") {
+      const properties = schemaObj.properties;
+      const required = schemaObj.required || [];
+
+      // Process each property
+      Object.keys(properties).forEach((key) => {
+        const property = properties[key];
+        const currentPath = [...path, key];
+        const fieldKey = currentPath.join(".");
+
+        // If this property has its own properties (nested object), recurse
+        if (property.properties && typeof property.properties === "object") {
+          const nested = extractFormFields(property, currentPath);
+          Object.assign(result.properties, nested.properties);
+          result.required.push(...nested.required);
+          Object.assign(result.fieldPaths, nested.fieldPaths);
+        } else {
+          // This is a leaf property (actual form field)
+          result.properties[fieldKey] = property;
+          result.fieldPaths[fieldKey] = currentPath;
+
+          // Check if this field is required
+          if (required.includes(key)) {
+            result.required.push(fieldKey);
+          }
+        }
+      });
+    }
+
+    // Handle oneOf structures (for backward compatibility)
+    if (schemaObj.oneOf && Array.isArray(schemaObj.oneOf)) {
+      schemaObj.oneOf.forEach((option: any) => {
+        const nested = extractFormFields(option, path);
+        Object.assign(result.properties, nested.properties);
+        result.required.push(...nested.required);
+        Object.assign(result.fieldPaths, nested.fieldPaths);
+      });
+    }
+
+    return result;
+  };
+
+  // Extract form fields from schema
+  const getSchemaProperties = () => {
+    if (!schema) {
+      return {
+        properties: {},
+        required: [],
+        fieldPaths: {},
+      };
+    }
+
+    // Start extraction from the root schema
+    return extractFormFields(schema);
+  };
+
+  const {
+    properties,
+    required: requiredList,
+    fieldPaths,
+  } = getSchemaProperties();
   const attributeKeys = Object.keys(properties).filter(
     (key) => !IGNORE_ATTRIBUTES.includes(key)
   );
@@ -51,10 +131,13 @@ const IssueCredentialModal = ({
   const allRequiredAttributesFilled =
     currentStage !== IssueCredentialStage.InputAttribute
       ? true
-      : renderedRequiredList.every(
-          (key) =>
-            attributes[key] !== undefined && attributes[key].trim() !== ""
-        );
+      : renderedRequiredList.every((key) => {
+          const value = attributes[key];
+          if (value === undefined || value === null) return false;
+          if (typeof value === "string" && value.trim() === "") return false;
+          if (typeof value === "boolean") return true; // booleans are always valid
+          return true;
+        });
 
   useEffect(() => {
     if (!open) return;
@@ -124,8 +207,9 @@ const IssueCredentialModal = ({
     }
 
     const schemaSaid = selectedCredTemplate;
-    let objAttributes = {};
-    const attribute = Object.fromEntries(
+
+    // Filter out empty values
+    const filteredAttributes = Object.fromEntries(
       Object.entries(attributes).filter(
         ([_, v]) =>
           v !== undefined &&
@@ -134,9 +218,45 @@ const IssueCredentialModal = ({
       )
     );
 
-    if (Object.keys(attribute).length) {
+    // Reconstruct nested object structure based on field paths
+    const reconstructNestedObject = (
+      flatData: Record<string, any>,
+      paths: Record<string, string[]>
+    ) => {
+      const result: any = {};
+
+      Object.entries(flatData).forEach(([flatKey, value]) => {
+        const path = paths[flatKey];
+        if (!path) return;
+
+        // Create nested structure
+        let current = result;
+        for (let i = 0; i < path.length - 1; i++) {
+          const segment = path[i];
+          if (!current[segment]) {
+            current[segment] = {};
+          }
+          current = current[segment];
+        }
+
+        // Set the final value
+        const finalKey = path[path.length - 1];
+        current[finalKey] = value;
+      });
+
+      return result;
+    };
+
+    let objAttributes = {};
+    if (Object.keys(filteredAttributes).length) {
+      const { fieldPaths } = getSchemaProperties();
+      const nestedAttributes = reconstructNestedObject(
+        filteredAttributes,
+        fieldPaths
+      );
+
       objAttributes = {
-        attribute,
+        attribute: nestedAttributes,
       };
     }
 
@@ -209,7 +329,7 @@ const IssueCredentialModal = ({
     );
   };
 
-  const updateAttributes = (key: string, value: string) => {
+  const updateAttributes = (key: string, value: any) => {
     setAttributes((currentValue) => ({
       ...currentValue,
       [key]: value,
@@ -248,16 +368,15 @@ const IssueCredentialModal = ({
         );
       }
       case IssueCredentialStage.InputAttribute: {
-        return attributeKeys.map((attribute) => (
+        return (
           <InputAttribute
-            key={attribute}
             value={attributes}
             setValue={updateAttributes}
-            attributes={[attribute]}
-            required={requiredList.includes(attribute)}
+            attributes={attributeKeys}
+            required={renderedRequiredList}
             properties={properties}
           />
-        ));
+        );
       }
       case IssueCredentialStage.Review: {
         const nonEmptyAttributes = Object.fromEntries(

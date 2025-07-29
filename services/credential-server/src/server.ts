@@ -43,11 +43,72 @@ async function getSignifyClient(bran: string): Promise<SignifyClient> {
     await client.connect();
   }
 
-  await Promise.allSettled(
-    ACDC_SCHEMAS_ID.map((schemaId) =>
-      resolveOobi(client, `${config.oobiEndpoint}/oobi/${schemaId}`)
-    )
+  console.log("Loading schemas via OOBI...");
+  const schemaResults = await Promise.allSettled(
+    ACDC_SCHEMAS_ID.map(async (schemaId) => {
+      try {
+        const oobiUrl = `${config.oobiEndpoint}/oobi/${schemaId}`;
+        console.log(`Loading schema: ${schemaId} from ${oobiUrl}`);
+
+        // First check if the OOBI endpoint is accessible
+        try {
+          const response = await fetch(oobiUrl);
+          if (!response.ok) {
+            throw new Error(
+              `OOBI endpoint returned ${response.status}: ${response.statusText}`
+            );
+          }
+          console.log(`OOBI endpoint accessible for schema: ${schemaId}`);
+        } catch (fetchError) {
+          console.error(
+            `OOBI endpoint not accessible for schema: ${schemaId}`,
+            fetchError
+          );
+          return {
+            schemaId,
+            success: false,
+            error: `OOBI endpoint not accessible: ${
+              fetchError instanceof Error ? fetchError.message : "Unknown error"
+            }`,
+          };
+        }
+
+        // Try to resolve the OOBI with increased timeout
+        await resolveOobi(client, oobiUrl, 30000); // 30 second timeout
+        console.log(`✓ Successfully loaded schema: ${schemaId}`);
+        return { schemaId, success: true };
+      } catch (error) {
+        console.error(`✗ Failed to load schema: ${schemaId}`, error);
+        return { schemaId, success: false, error };
+      }
+    })
   );
+
+  // Log results
+  const successful = schemaResults.filter(
+    (result) => result.status === "fulfilled" && result.value.success
+  );
+  const failed = schemaResults.filter(
+    (result) =>
+      result.status === "rejected" ||
+      (result.status === "fulfilled" && !result.value.success)
+  );
+
+  console.log(
+    `Schema loading complete: ${successful.length} successful, ${failed.length} failed`
+  );
+
+  if (failed.length > 0) {
+    console.warn(
+      "Failed to load schemas:",
+      failed.map((result) =>
+        result.status === "fulfilled" ? result.value.schemaId : "unknown"
+      )
+    );
+    console.warn(
+      "Server will continue startup. Failed schemas can be retried later via /schemas/reload endpoint."
+    );
+  }
 
   return client;
 }

@@ -46,7 +46,7 @@ services:
     restart: unless-stopped
     environment:
       - OOBI_ENDPOINT=http://cred-issuance:3001
-      - KERIA_ENDPOINT=http://keria.hansajayathilaka.com
+      - KERIA_ENDPOINT=https://keria.hansajayathilaka.com
       - KERIA_BOOT_ENDPOINT=https://keria-boot.hansajayathilaka.com
       # Branding Configuration
       - CUSTOM_ORG_NAME=${CUSTOM_ORG_NAME:-Default Organization}
@@ -75,7 +75,7 @@ services:
       dockerfile: ./Dockerfile
     restart: unless-stopped
     environment:
-      - VITE_SERVER_URL=${VITE_SERVER_URL:-http://localhost:3001}
+      - VITE_SERVER_URL=${CRED_UI_SERVER_URL:-http://localhost:3001}
       # Branding Configuration for UI
       - VITE_CUSTOM_ORG_NAME=${CUSTOM_ORG_NAME:-Default Organization}
       - VITE_CUSTOM_LOGO_PATH=${CUSTOM_LOGO_PATH:-/assets/logo.png}

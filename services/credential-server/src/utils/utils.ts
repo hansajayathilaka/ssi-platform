@@ -151,7 +151,8 @@ export async function createQVICredential(
 
 export async function resolveOobi(
   client: SignifyClient,
-  url: string
+  url: string,
+  timeout: number = OP_TIMEOUT
 ): Promise<Operation> {
   const urlObj = new URL(url);
   const alias = urlObj.searchParams.get("name") ?? randomSalt();
@@ -161,7 +162,7 @@ export async function resolveOobi(
   const operation = (await waitAndGetDoneOp(
     client,
     await client.oobis().resolve(strippedUrl),
-    OP_TIMEOUT
+    timeout
   )) as Operation & { response: State };
   if (!operation.done) {
     throw new Error(FAILED_TO_RESOLVE_OOBI);

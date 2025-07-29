@@ -18,7 +18,17 @@ import {
   updateCustomSchema,
   deleteCustomSchema,
   validateCredentialData,
+  saidifyJsonSchema,
+  convertAndSaidifySchema,
+  validateSchemaWithSaid,
 } from "./apis/schema-management.api";
+import {
+  createRegistry,
+  listRegistries,
+  getRegistryById,
+  deleteRegistry,
+  getOrCreateRegistryForSchema,
+} from "./apis/registry.api";
 import { config } from "./config";
 
 export const router: Router = express.Router();
@@ -41,3 +51,15 @@ router.post(config.path.customSchemas, createCustomSchema);
 router.put(config.path.customSchemaById, updateCustomSchema);
 router.delete(config.path.customSchemaById, deleteCustomSchema);
 router.post(config.path.validateCredentialData, validateCredentialData);
+
+// SAID-based schema routes
+router.post("/schemas/saidify", saidifyJsonSchema);
+router.post("/schemas/convert", convertAndSaidifySchema);
+router.post("/schemas/validate-said", validateSchemaWithSaid);
+
+// Registry management routes
+router.post("/registries", createRegistry);
+router.get("/registries", listRegistries);
+router.get("/registries/:id", getRegistryById);
+router.delete("/registries/:id", deleteRegistry);
+router.post("/registries/for-schema", getOrCreateRegistryForSchema);

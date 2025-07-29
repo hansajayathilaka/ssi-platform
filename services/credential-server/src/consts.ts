@@ -6,11 +6,14 @@ export const RARE_EVO_DEMO_SCHEMA_SAID =
 export const LE_SCHEMA_SAID = "ENPXp1vQzRF6JwIuS-mp2U8Uf1MoADoP_GqQ62VsDZWY";
 export const F_EMPLOYEE_DEMO_SCHEMA_SAID =
   "EL9oOWU_7zQn_rD--Xsgi3giCWnFDaNvFMUGTOZx1ARO";
+export const KYC_CREDENTIAL_SCHEMA_SAID =
+  "EOL2-fVvnFDrYc_iM6MS8gyNnLDYGB8-cST1N053k-Gg";
 export const ACDC_SCHEMAS_ID = [
   QVI_SCHEMA_SAID,
   LE_SCHEMA_SAID,
   RARE_EVO_DEMO_SCHEMA_SAID,
   F_EMPLOYEE_DEMO_SCHEMA_SAID,
+  KYC_CREDENTIAL_SCHEMA_SAID,
 ];
 
 export const ACDC_SCHEMAS = [
@@ -29,6 +32,10 @@ export const ACDC_SCHEMAS = [
   {
     id: LE_SCHEMA_SAID,
     name: "Legal Entity vLEI Credential",
+  },
+  {
+    id: KYC_CREDENTIAL_SCHEMA_SAID,
+    name: "KYC Credential",
   },
 ];
 

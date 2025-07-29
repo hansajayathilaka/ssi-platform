@@ -194,7 +194,12 @@ const DynamicCredentialForm = ({
       const credentialData = {
         schemaSaid: schemaId,
         aid: recipientAid,
-        attribute: formData,
+        ...Object.fromEntries(
+          Object.entries(formData).map(([key, value]) => [
+            key,
+            typeof value === "string" ? value : String(value),
+          ])
+        ),
       };
 
       // Issue the credential
@@ -274,12 +279,12 @@ const DynamicCredentialForm = ({
             key={field.name}
             fullWidth
             label={field.displayName || field.name}
-            type="date"
+            type="string"
             optional={!field.required}
             value={value}
             onChange={(e) => handleFieldChange(field.name, e.target.value)}
             error={!!fieldError}
-            helperText={fieldError || field.description}
+            errorMessage={fieldError || field.description}
             placeholder={i18n.t(
               "components.dynamicCredentialForm.placeholders.date"
             )}
@@ -292,12 +297,12 @@ const DynamicCredentialForm = ({
             key={field.name}
             fullWidth
             label={field.displayName || field.name}
-            type="number"
+            type="integer"
             optional={!field.required}
             value={value}
             onChange={(e) => handleFieldChange(field.name, e.target.value)}
             error={!!fieldError}
-            helperText={fieldError || field.description}
+            errorMessage={fieldError || field.description}
             placeholder={i18n.t(
               "components.dynamicCredentialForm.placeholders.number"
             )}
@@ -310,18 +315,12 @@ const DynamicCredentialForm = ({
             key={field.name}
             fullWidth
             label={field.displayName || field.name}
-            type={
-              field.type === "email"
-                ? "email"
-                : field.type === "url"
-                  ? "url"
-                  : "text"
-            }
+            type="string"
             optional={!field.required}
             value={value}
             onChange={(e) => handleFieldChange(field.name, e.target.value)}
             error={!!fieldError}
-            helperText={fieldError || field.description}
+            errorMessage={fieldError || field.description}
             placeholder={i18n.t(
               `components.dynamicCredentialForm.placeholders.${field.type}`
             )}

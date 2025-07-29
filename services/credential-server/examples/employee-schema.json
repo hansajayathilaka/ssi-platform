@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "",
+  "title": "EmployeeRecord",
+  "type": "object",
+  "properties": {
+    "credentialSubject": {
+      "type": "object",
+      "properties": {
+        "employeeId": { 
+          "type": "string",
+          "title": "Employee ID",
+          "description": "Unique identifier for the employee"
+        },
+        "fullName": { 
+          "type": "string",
+          "title": "Full Name",
+          "description": "Employee's full name"
+        },
+        "department": { 
+          "type": "string",
+          "title": "Department",
+          "description": "Employee's department"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "title": "Email Address",
+          "description": "Employee's work email address"
+        },
+        "startDate": {
+          "type": "string",
+          "format": "date",
+          "title": "Start Date",
+          "description": "Employee's start date"
+        }
+      },
+      "required": ["employeeId", "fullName", "department", "email", "startDate"]
+    }
+  },
+  "required": ["credentialSubject"]
+}

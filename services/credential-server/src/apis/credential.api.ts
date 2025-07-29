@@ -4,6 +4,8 @@ import { ACDC_SCHEMAS_ID, ISSUER_NAME, LE_SCHEMA_SAID } from "../consts";
 import { getRegistry, OP_TIMEOUT, waitAndGetDoneOp } from "../utils/utils";
 import { QviCredential } from "../utils/utils.types";
 import { SchemaStorageService } from "../services/schema-storage.service";
+import { RegistryService } from "../services/registry.service";
+import { validateSchemaSaid, isSaidified } from "../utils/said.utils";
 import { config } from "../config";
 
 export const UNKNOW_SCHEMA_ID = "Unknow Schema ID: ";
@@ -210,6 +212,52 @@ export async function issueAcdcCredential(
     return;
   }
 
+  // For default schemas, check if they are loaded in KERI
+  if (ACDC_SCHEMAS_ID.some((schemaId) => schemaId === schemaSaid)) {
+    try {
+      // Try to get the schema from KERI to verify it's loaded
+      await client.schemas().get(schemaSaid);
+    } catch (error) {
+      console.error(`Schema ${schemaSaid} not loaded in KERI:`, error);
+      res.status(400).send({
+        success: false,
+        error: {
+          code: "SCHEMA_NOT_LOADED",
+          message: `Credential schema ${schemaSaid} not found. It must be loaded with data oobi before issuing credentials.`,
+          details:
+            "The schema exists but is not loaded in the KERI system. Please restart the server to reload schemas.",
+        },
+      });
+      return;
+    }
+  }
+
+  // For SAID-based schemas, validate the SAID format
+  const isDefaultSchema = ACDC_SCHEMAS_ID.some(
+    (schemaId) => schemaId === schemaSaid
+  );
+  if (!isDefaultSchema) {
+    // This is a custom schema, check if it's properly SAIDified
+    const customSchema = await schemaStorageService.loadSchema(schemaSaid);
+    if (customSchema) {
+      // Convert custom schema to JSON Schema and validate SAID
+      const { convertToJsonSchema } = await import("../utils/said.utils");
+      const jsonSchema = convertToJsonSchema(customSchema);
+
+      if (!isSaidified(jsonSchema) || !validateSchemaSaid(jsonSchema)) {
+        res.status(400).send({
+          success: false,
+          error: {
+            code: "INVALID_SCHEMA_SAID",
+            message:
+              "Schema SAID is invalid or missing. Please saidify the schema first.",
+          },
+        });
+        return;
+      }
+    }
+  }
+
   // Validate credential data against schema (especially for custom schemas)
   const validation = await validateCredentialData(schemaSaid, attribute);
   if (!validation.isValid) {
@@ -224,7 +272,21 @@ export async function issueAcdcCredential(
     return;
   }
 
-  const keriRegistryRegk = await getRegistry(client, ISSUER_NAME);
+  // Get or create registry for the schema
+  const registryService = new RegistryService(client);
+  let keriRegistryRegk: string;
+
+  if (isDefaultSchema) {
+    // Use existing registry for default schemas
+    keriRegistryRegk = await getRegistry(client, ISSUER_NAME);
+  } else {
+    // Get or create registry for custom schema
+    keriRegistryRegk = await registryService.getOrCreateRegistryForSchema(
+      schemaSaid,
+      ISSUER_NAME
+    );
+  }
+
   const holderAid = await client.identifiers().get(ISSUER_NAME);
 
   let issueParams: any;

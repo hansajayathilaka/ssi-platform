@@ -12,7 +12,12 @@ const Review = ({
   if (!credentialType || !connectionId) return null;
 
   const credAttributes = Object.keys(attribute).map((key) => {
-    const inputLabelText = key.replace(/([a-z])([A-Z])/g, "$1 $2");
+    // Handle nested keys like "credentialSubject.firstName"
+    const parts = key.split(".");
+    const lastPart = parts[parts.length - 1];
+
+    // Convert camelCase to Title Case
+    const inputLabelText = lastPart.replace(/([a-z])([A-Z])/g, "$1 $2");
 
     return {
       key: key,
@@ -70,7 +75,11 @@ const Review = ({
             className="content"
             variant="body2"
           >
-            {attribute[credAttribute.key]}
+            {typeof attribute[credAttribute.key] === "boolean"
+              ? attribute[credAttribute.key]
+                ? "Yes"
+                : "No"
+              : String(attribute[credAttribute.key])}
           </Typography>
         </Box>
       ))}

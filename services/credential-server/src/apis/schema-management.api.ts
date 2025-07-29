@@ -10,6 +10,12 @@ import { config } from "../config";
 import { CustomSchema } from "../types/schema.types";
 import { SchemaStorageService } from "../services/schema-storage.service";
 import { SchemaValidationService } from "../services/schema-validation.service";
+import {
+  saidifySchema,
+  convertToJsonSchema,
+  validateSchemaSaid,
+  JsonSchema,
+} from "../utils/said.utils";
 
 // Initialize services
 const storageService = new SchemaStorageService({
@@ -412,6 +418,175 @@ export async function validateCredentialData(
       error: {
         code: "VALIDATION_ERROR",
         message: "Failed to validate credential data",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+    });
+  }
+}
+
+/**
+ * POST /schemas/saidify - Convert and SAIDify a JSON schema
+ */
+export async function saidifyJsonSchema(
+  req: Request,
+  res: Response
+): Promise<void> {
+  try {
+    const jsonSchema = req.body as JsonSchema;
+
+    // Basic request validation
+    if (!jsonSchema || typeof jsonSchema !== "object") {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_REQUEST_BODY",
+          message: "Request body must contain JSON schema data",
+        },
+      });
+      return;
+    }
+
+    // Validate JSON Schema structure
+    if (!jsonSchema.$schema || !jsonSchema.title || !jsonSchema.type) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_JSON_SCHEMA",
+          message: "Schema must include $schema, title, and type fields",
+        },
+      });
+      return;
+    }
+
+    // SAIDify the schema
+    const saidifiedSchema = saidifySchema(jsonSchema);
+
+    res.status(200).json({
+      success: true,
+      data: saidifiedSchema,
+      message: "Schema SAIDified successfully",
+    });
+  } catch (error) {
+    console.error("Error SAIDifying schema:", error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: "SAIDIFY_ERROR",
+        message: "Failed to SAIDify schema",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+    });
+  }
+}
+
+/**
+ * POST /schemas/convert - Convert custom schema to JSON Schema and SAIDify
+ */
+export async function convertAndSaidifySchema(
+  req: Request,
+  res: Response
+): Promise<void> {
+  try {
+    const customSchema = req.body as CustomSchema;
+
+    // Basic request validation
+    if (!customSchema || typeof customSchema !== "object") {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_REQUEST_BODY",
+          message: "Request body must contain custom schema data",
+        },
+      });
+      return;
+    }
+
+    // Validate custom schema structure
+    const validationResult = validationService.validateSchema(customSchema);
+    if (!validationResult.isValid) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "SCHEMA_VALIDATION_FAILED",
+          message: "Custom schema validation failed",
+          details: validationResult.errors,
+        },
+      });
+      return;
+    }
+
+    // Convert to JSON Schema
+    const jsonSchema = convertToJsonSchema(customSchema);
+
+    // SAIDify the schema
+    const saidifiedSchema = saidifySchema(jsonSchema);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        originalSchema: customSchema,
+        jsonSchema: jsonSchema,
+        saidifiedSchema: saidifiedSchema,
+        said: saidifiedSchema.$id,
+      },
+      message: "Schema converted and SAIDified successfully",
+    });
+  } catch (error) {
+    console.error("Error converting and SAIDifying schema:", error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: "CONVERT_SAIDIFY_ERROR",
+        message: "Failed to convert and SAIDify schema",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+    });
+  }
+}
+
+/**
+ * POST /schemas/validate-said - Validate that a schema's SAID is correct
+ */
+export async function validateSchemaWithSaid(
+  req: Request,
+  res: Response
+): Promise<void> {
+  try {
+    const jsonSchema = req.body as JsonSchema;
+
+    // Basic request validation
+    if (!jsonSchema || typeof jsonSchema !== "object") {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_REQUEST_BODY",
+          message: "Request body must contain JSON schema data",
+        },
+      });
+      return;
+    }
+
+    // Validate SAID
+    const isValidSaid = validateSchemaSaid(jsonSchema);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        isValid: isValidSaid,
+        schemaId: jsonSchema.$id,
+        schemaTitle: jsonSchema.title,
+      },
+      message: isValidSaid
+        ? "Schema SAID is valid"
+        : "Schema SAID is invalid or missing",
+    });
+  } catch (error) {
+    console.error("Error validating schema SAID:", error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: "SAID_VALIDATION_ERROR",
+        message: "Failed to validate schema SAID",
         details: error instanceof Error ? error.message : "Unknown error",
       },
     });
