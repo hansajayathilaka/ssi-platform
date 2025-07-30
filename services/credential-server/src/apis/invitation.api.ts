@@ -10,10 +10,7 @@ export async function keriOobiApi(
 ) {
   const client: SignifyClient = _.app.get("signifyClient");
 
-  const url = `${await getOobi(
-    client,
-    ISSUER_NAME
-  )}?name=CF%20Credential%20Issuance`;
+  const url = `${await getOobi(client, ISSUER_NAME)}?name=DEIP`;
   res.status(200).send({
     success: true,
     data: url,

@@ -3,6 +3,9 @@ name: veridian-prod
 services:
   cred-issuance:
     profiles: [cred-issuance,production,local]
+    build:
+      context: ./services/credential-server
+      dockerfile: Dockerfile
     image: ${CRED_IMAGE:-cardanofoundation/cf-cred-issuance:main}
     restart: unless-stopped
     environment:
@@ -29,6 +32,9 @@ services:
 
   cred-issuance-ui:
     profiles: [cred-issuance,production,local]
+    build:
+      context: ./services/credential-server-ui
+      dockerfile: Dockerfile
     image: ${CRED_UI_IMAGE:-cardanofoundation/cf-cred-issuance-ui:main}
     restart: unless-stopped
     environment:

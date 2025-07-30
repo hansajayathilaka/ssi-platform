@@ -1,3 +1,6 @@
+import dotenv from "dotenv";
+dotenv.config();
+
 import bodyParser from "body-parser";
 import cors from "cors";
 import express from "express";
@@ -20,6 +23,10 @@ import {
 } from "./utils/utils";
 
 async function getSignifyClient(bran: string): Promise<SignifyClient> {
+  console.log(`Creating SignifyClient with bran: ${bran}`);
+  console.log(`Keria URL: ${config.keria.url}`);
+  console.log(`Boot URL: ${config.keria.bootUrl}`);
+  console.log(`OOBI Endpoint: ${config.oobiEndpoint}`);
   const client = new SignifyClient(
     config.keria.url,
     bran,
