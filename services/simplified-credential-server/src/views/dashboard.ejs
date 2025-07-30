@@ -1,4 +1,163 @@
 <div class="dashboard">
-    <h1>Credential Issuance Dashboard</h1>
-    <p>Welcome to the simplified credential server dashboard.</p>
+    <div class="dashboard-header">
+        <h1><i class="fas fa-tachometer-alt"></i> Credential Issuance Dashboard</h1>
+        <p class="dashboard-subtitle">Manage credential issuance and invitations</p>
+    </div>
+
+    <!-- Status Messages -->
+    <div id="message-container" class="message-container" style="display: none;">
+        <div id="success-message" class="message success" style="display: none;">
+            <i class="fas fa-check-circle"></i>
+            <span id="success-text"></span>
+        </div>
+        <div id="error-message" class="message error" style="display: none;">
+            <i class="fas fa-exclamation-circle"></i>
+            <span id="error-text"></span>
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+        <!-- Invitation Generation Section -->
+        <div class="card">
+            <div class="card-header">
+                <h2><i class="fas fa-paper-plane"></i> Generate Invitation</h2>
+                <p>Create KERI OOBI invitations for credential recipients</p>
+            </div>
+            <div class="card-body">
+                <form id="invitation-form" class="form">
+                    <div class="form-group">
+                        <label for="invitation-type">Invitation Type</label>
+                        <select id="invitation-type" name="invitationType" class="form-control" required>
+                            <option value="credential">Credential Invitation</option>
+                            <option value="connection">Connection Invitation</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="invitation-label">Label (Optional)</label>
+                        <input type="text" id="invitation-label" name="label" class="form-control" 
+                               placeholder="Enter invitation label">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-paper-plane"></i>
+                        Generate Invitation
+                    </button>
+                </form>
+                
+                <div id="invitation-result" class="result-section" style="display: none;">
+                    <h3>Generated Invitation</h3>
+                    <div class="invitation-display">
+                        <div class="invitation-text">
+                            <label>OOBI URL:</label>
+                            <textarea id="invitation-oobi" class="form-control" readonly rows="3"></textarea>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="copyToClipboard('invitation-oobi')">
+                                <i class="fas fa-copy"></i> Copy
+                            </button>
+                        </div>
+                        <div class="qr-code-section">
+                            <div id="qr-code-container"></div>
+                            <p class="qr-instructions">Scan this QR code with a compatible wallet</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Credential Issuance Section -->
+        <div class="card">
+            <div class="card-header">
+                <h2><i class="fas fa-certificate"></i> Issue Credential</h2>
+                <p>Issue verifiable credentials to recipients</p>
+            </div>
+            <div class="card-body">
+                <form id="credential-form" class="form">
+                    <div class="form-group">
+                        <label for="recipient-id">Recipient ID *</label>
+                        <input type="text" id="recipient-id" name="recipientId" class="form-control" 
+                               placeholder="Enter recipient AID" required>
+                        <small class="form-help">The AID (Autonomic Identifier) of the credential recipient</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="schema-id">Schema ID *</label>
+                        <input type="text" id="schema-id" name="schemaId" class="form-control" 
+                               placeholder="Enter schema SAID" required>
+                        <small class="form-help">The SAID (Self-Addressing Identifier) of the credential schema</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="credential-type">Credential Type</label>
+                        <select id="credential-type" name="credentialType" class="form-control">
+                            <option value="identity">Identity Credential</option>
+                            <option value="qualification">Qualification Credential</option>
+                            <option value="membership">Membership Credential</option>
+                            <option value="custom">Custom Credential</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="credential-attributes">Credential Attributes *</label>
+                        <textarea id="credential-attributes" name="attributes" class="form-control" 
+                                  rows="6" placeholder='Enter credential attributes as JSON:
+{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "issueDate": "2025-01-30"
+}' required></textarea>
+                        <small class="form-help">Enter the credential attributes as valid JSON</small>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="validateJSON()">
+                            <i class="fas fa-check"></i>
+                            Validate JSON
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-certificate"></i>
+                            Issue Credential
+                        </button>
+                    </div>
+                </form>
+                
+                <div id="credential-result" class="result-section" style="display: none;">
+                    <h3>Credential Issued Successfully</h3>
+                    <div class="credential-info">
+                        <p><strong>Credential ID:</strong> <span id="credential-id"></span></p>
+                        <p><strong>Issued to:</strong> <span id="issued-to"></span></p>
+                        <p><strong>Issue Date:</strong> <span id="issue-date"></span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Status Section -->
+    <div class="card system-status">
+        <div class="card-header">
+            <h2><i class="fas fa-server"></i> System Status</h2>
+        </div>
+        <div class="card-body">
+            <div class="status-grid">
+                <div class="status-item">
+                    <div class="status-indicator" id="keria-status">
+                        <i class="fas fa-circle"></i>
+                    </div>
+                    <div class="status-info">
+                        <h4>KERIA Agent</h4>
+                        <p id="keria-status-text">Checking...</p>
+                    </div>
+                </div>
+                <div class="status-item">
+                    <div class="status-indicator" id="signify-status">
+                        <i class="fas fa-circle"></i>
+                    </div>
+                    <div class="status-info">
+                        <h4>Signify Client</h4>
+                        <p id="signify-status-text">Checking...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
