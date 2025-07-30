@@ -1,0 +1,23 @@
+/* Basic styling placeholder */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+header {
+    background-color: #333;
+    color: white;
+    padding: 1rem;
+}
+
+main {
+    padding: 2rem;
+}
+
+footer {
+    background-color: #f5f5f5;
+    text-align: center;
+    padding: 1rem;
+    margin-top: 2rem;
+}

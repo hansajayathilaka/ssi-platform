@@ -169,5 +169,22 @@
     "src/**/*.{ts,tsx,scss}": "npx prettier --write",
     "services/{credential-server,credential-server-ui}/src/**/*.{ts,tsx,scss}": "npx prettier --write"
   },
-  "type": "module"
+  "type": "module",
+  "description": "<div align=\"center\">   <img src=\"src/assets/icon-only.png\" alt=\"Veridian Wallet | Cardano Foundation\" height=\"150\" />   <hr />   <h1 align=\"center\" style=\"border-bottom: none\">Veridian Wallet | Cardano Foundation</h1>",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cardano-foundation/veridian-wallet.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/cardano-foundation/veridian-wallet/issues"
+  },
+  "homepage": "https://github.com/cardano-foundation/veridian-wallet#readme"
 }
